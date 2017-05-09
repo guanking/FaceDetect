@@ -887,7 +887,9 @@ border-radius:5px;
           </rect>
          </property>
          <property name="styleSheet">
-          <string notr="true">color: rgb(255, 255, 0);</string>
+          <string notr="true">#pMsgText{
+color: rgb(255, 255, 0);
+}</string>
          </property>
          <property name="margin">
           <number>0</number>
@@ -1263,7 +1265,7 @@ margin-bottom:10px;
  </customwidgets>
  <resources>
   <include location="mySrc.qrc"/>
-  <include location="../../../mySrc.qrc"/>
+  <include location="mySrc.qrc"/>
  </resources>
  <connections>
   <connection>
