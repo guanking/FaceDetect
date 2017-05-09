@@ -542,16 +542,6 @@ border-radius:5px;
           <string>开始训练</string>
          </property>
         </widget>
-        <widget class="Q3ComboBox" name="pSVMCoreFunBox">
-         <property name="geometry">
-          <rect>
-           <x>560</x>
-           <y>140</y>
-           <width>96</width>
-           <height>27</height>
-          </rect>
-         </property>
-        </widget>
         <widget class="QLabel" name="label_5">
          <property name="geometry">
           <rect>
@@ -877,43 +867,6 @@ border-radius:5px;
         <property name="title">
          <string>信息：</string>
         </property>
-        <widget class="Q3TextEdit" name="pMsgText">
-         <property name="geometry">
-          <rect>
-           <x>40</x>
-           <y>20</y>
-           <width>291</width>
-           <height>211</height>
-          </rect>
-         </property>
-         <property name="margin">
-          <number>0</number>
-         </property>
-         <property name="textFormat">
-          <enum>Qt::RichText</enum>
-         </property>
-         <property name="text">
-          <string>&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;/head&gt;&lt;body style=&quot;font-size:11pt;font-family:Ubuntu&quot;&gt;
-&lt;p dir=&quot;ltr&quot;&gt;训练及测试信息。。。。。。&lt;/p&gt;
-&lt;/body&gt;&lt;/html&gt;
-</string>
-         </property>
-         <property name="paper">
-          <brush brushstyle="SolidPattern">
-           <color alpha="255">
-            <red>97</red>
-            <green>255</green>
-            <blue>211</blue>
-           </color>
-          </brush>
-         </property>
-         <property name="linkUnderline">
-          <bool>true</bool>
-         </property>
-         <property name="readOnly">
-          <bool>false</bool>
-         </property>
-        </widget>
        </widget>
       </widget>
       <widget class="QWidget" name="yCrCbTab">
@@ -1240,24 +1193,6 @@ margin-bottom:10px;
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>Q3Frame</class>
-   <extends>QFrame</extends>
-   <header>Qt3Support/Q3Frame</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>Q3ComboBox</class>
-   <extends>QWidget</extends>
-   <header>Qt3Support/Q3ComboBox</header>
-  </customwidget>
-  <customwidget>
-   <class>Q3TextEdit</class>
-   <extends>Q3Frame</extends>
-   <header>q3textedit.h</header>
-  </customwidget>
- </customwidgets>
  <resources>
   <include location="mySrc.qrc"/>
   <include location="mySrc.qrc"/>
