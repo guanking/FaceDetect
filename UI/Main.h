@@ -1,5 +1,27 @@
 #ifndef MAIN_H
 #define MAIN_H
+
+#include <Qt3Support/Q3ComboBox>
+#include <Qt3Support/Q3Frame>
+#include <Qt3Support/Q3TextEdit>
+#include <QtCore/QVariant>
+#include <QtGui/QAction>
+#include <QtGui/QApplication>
+#include <QtGui/QButtonGroup>
+#include <QtGui/QGridLayout>
+#include <QtGui/QGroupBox>
+#include <QtGui/QHeaderView>
+#include <QtGui/QLabel>
+#include <QtGui/QLineEdit>
+#include <QtGui/QMainWindow>
+#include <QtGui/QPushButton>
+#include <QtGui/QRadioButton>
+#include <QtGui/QSlider>
+#include <QtGui/QSpinBox>
+#include <QtGui/QSplitter>
+#include <QtGui/QStatusBar>
+#include <QtGui/QTabWidget>
+#include <QtGui/QWidget>
 #include <QtGui/QApplication>
 #include <QtCore/QVariant>
 #include <QtGui/QAction>
@@ -12,10 +34,6 @@
 #include <QtGui/QPushButton>
 #include <QtGui/QStatusBar>
 #include <QtGui/QWidget>
-#include "opencv2/core.hpp"
-#include "opencv2/imgproc.hpp"
-#include "opencv2/highgui.hpp"
-#include "opencv2/videoio.hpp"
 #include"ui_FaceDetactUI.h"
 class Main:public QMainWindow
 {

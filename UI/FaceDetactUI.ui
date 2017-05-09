@@ -886,11 +886,6 @@ border-radius:5px;
            <height>211</height>
           </rect>
          </property>
-         <property name="styleSheet">
-          <string notr="true">#pMsgText{
-color: rgb(255, 255, 0);
-}</string>
-         </property>
          <property name="margin">
           <number>0</number>
          </property>
@@ -906,9 +901,9 @@ color: rgb(255, 255, 0);
          <property name="paper">
           <brush brushstyle="SolidPattern">
            <color alpha="255">
-            <red>13</red>
-            <green>0</green>
-            <blue>4</blue>
+            <red>97</red>
+            <green>255</green>
+            <blue>211</blue>
            </color>
           </brush>
          </property>
