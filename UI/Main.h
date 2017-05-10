@@ -34,12 +34,26 @@
 #include <QtGui/QPushButton>
 #include <QtGui/QStatusBar>
 #include <QtGui/QWidget>
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/ml.hpp>
 #include"ui_FaceDetactUI.h"
+#include"../Adaboost.h"
+#include"../PCASVM.h"
+#include"../YCbCr.h"
+
+using namespace std;
+using namespace cv;
+
 class Main:public QMainWindow
 {
 	Q_OBJECT
 private:
 	Ui_MainWindow ui;
+	Adaboost adaboost;
+	void mat2Label(Mat mat,QLabel *label);
 public:
 	Main(QMainWindow *parent = NULL);
 	~Main();
