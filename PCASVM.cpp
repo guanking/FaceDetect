@@ -51,7 +51,7 @@ void PCASVM::initFlatImagesAndLabels()
 	cout<<"Each image : \n\twidth = "<<this->normalRows<<" ,height = "<<this->normalCols<<endl;
 	cout<<"\ttotal piexls = "<<this->normalRows*this->normalCols<<endl;
 #endif
-	for(int i = 0;i < imgs.size();i++)
+	for(size_t i = 0;i < imgs.size();i++)
 	{
 		imgs[i].reshape(1,1).convertTo(this->flatImgs.row(i),CV_32F);
 	}

@@ -51,7 +51,7 @@ void rTTYCbCr()
 	}
 }
 
-#define TEST
+//#define TEST
 #ifdef TEST
 //#define DEBUG
 int main()
