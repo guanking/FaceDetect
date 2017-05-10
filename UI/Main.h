@@ -43,5 +43,10 @@ private:
 public:
 	Main(QMainWindow *parent = NULL);
 	~Main();
+public slots:
+	void on_aStartBtn_clicked();
+	void on_aRealtimeRtb_clicked();
+	void on_aFileRtb_clicked();
+	void on_aChoiceFileBtn_clicked();
 };
 #endif
