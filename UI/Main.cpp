@@ -1,4 +1,6 @@
-#include <iostream> 
+#include  <iostream>
+#include <exception>
+#include <sstream>
 #include <QtGui/QFileDialog>
 #include <QtCore/QVariant>
 #include <QtGui/QAction>
@@ -36,6 +38,7 @@ Main::Main(QMainWindow *mainView ):QMainWindow(mainView)
 {
 	this->ui.setupUi(this);
 	this->ui.retranslateUi(this);
+	this->ps = NULL;
 	this->SVMKernelTypes.insert(pair<string,int>("LINEAR",SVM::LINEAR));
 	this->SVMKernelTypes.insert(pair<string,int>("POLY",SVM::POLY));
 	this->SVMKernelTypes.insert(pair<string,int>("RBF",SVM::RBF));
@@ -140,11 +143,246 @@ void Main::on_aChoiceFileBtn_clicked()
 	}
 }
 
-void Main::on_pStarTrainBtn_clicked()
+void Main::on_pStartTrain_clicked()
 {
 #ifdef DEBUG_UI
-	cout<<"on_pStarTrainBtn_clicked"<<endl;
+	cout<<"on_pStartTrain_clicked"<<endl;
 #endif
+	string facePath = this->ui.pTrainFaceImgPathText->text().toStdString();
+	string notfacePath = this->ui.pTrainNotfaceImgPathText->text().toStdString();
+	int faceBegin = this->ui.pTrainFaceBeginBox->value();
+	int faceEnd = this->ui.pTrainFaceEndBox->value();
+	int notfaceBegin = this->ui.pTrainNotfaceBeginBox->value();
+	int notfaceEnd = this->ui.pTrainNotfaceEndBox->value();
+	int pcaPercent = this->ui.pCptRateBox->value();	
+	string kernelType = this->ui.ySVMCmpBox->currentText().toStdString();
+
+	if(facePath.find_last_of('/') != facePath.length() - 1)
+	{
+		facePath.append("/");
+	}
+	if(notfacePath.find_last_of('/') != notfacePath.length())
+	{
+		notfacePath.append("/");
+	}
+	string str = "Face Path = ";
+	str.append(facePath);
+	str += "; from ";
+	this->ui.yMsgText->setText(QString::fromStdString(str));
+	stringstream sStream;
+	sStream<<faceBegin;
+	sStream>>str;
+	str += "to";
+	this->ui.yMsgText->append(QString::fromStdString(str));
+	sStream<<faceEnd;
+	sStream>>str;
+	str.append("\nnotfacePath = ");
+	str.append(notfacePath);
+	str.append("; from ");
+	this->ui.yMsgText->append(QString::fromStdString(str));
+	sStream<<notfaceBegin;
+	sStream>>str;
+	str.append("to");
+	this->ui.yMsgText->append(QString::fromStdString(str));
+	sStream<<notfaceEnd;
+	sStream>>str;
+	str.append("\nPCA component is ");
+	this->ui.yMsgText->append(QString::fromStdString(str));
+	sStream<<pcaPercent/100.0;
+	sStream>>str;
+	str.append("%\nSVM kernel type is ");
+	str.append(kernelType);
+	this->ui.yMsgText->append(QString::fromStdString(str));
+#ifdef DEBUG_UI
+	cout<<"\tfacePath = "<<facePath<<" from "<<faceBegin<<" to "<<faceEnd<<endl;
+	cout<<"\tnotfacePath = "<<notfacePath<<" from "<<notfaceBegin<<" to "<<notfaceEnd<<endl;
+	cout<<"\tPCA component percent is "<<pcaPercent<<"%"<<endl;
+	cout<<"\tSVM kernel type is "<<kernelType<<endl;
+#endif//DEBUG_UI
+	if(this->ps != NULL)
+		delete this->ps;
+	this->ps = new PCASVM(facePath,faceBegin,faceEnd,notfacePath,notfaceBegin,notfaceEnd);
+	if(this->ps == NULL)
+	{
+		QMessageBox::information(this, tr("Error"), tr("Malloc space failed!"));  
+		return;
+	}
+	this->ps->setCptPercent(pcaPercent/100.0);
+	map<string,int>::iterator ele = this->SVMKernelTypes.find(kernelType);
+	if(ele == this->SVMKernelTypes.end())
+	{
+		QMessageBox::information(this, QString::fromStdString(kernelType), tr("Unknow Kernel type !")); 
+		return;
+	}
+	this->ps->setSVMKernelType(ele->second);
+	this->ui.yMsgText->append(tr("training......"));
+	try
+	{
+		this->ps->init();
+	}
+	catch(exception& e)
+	{
+		QMessageBox::information(this, tr("Error"), QString::fromStdString(string(e.what()))); 
+	}
+	this->ui.yMsgText->append(tr("training finished !"));
+}
+
+void Main::on_pStartTest_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_pStartTest_clicked"<<endl;
+#endif
+	string facePath = this->ui.pTestFaceImgPathText->text().toStdString();
+	string notfacePath = this->ui.pTestNotfaceImgPathText->text().toStdString();
+	int faceBegin = this->ui.pTestFaceBeginBox->value();
+	int faceEnd = this->ui.pTestFaceEndBox->value();
+	int notfaceBegin = this->ui.pTestNotfaceBeginBox->value();
+	int notfaceEnd = this->ui.pTestNotfaceEndBox->value();
+
+	if(facePath.find_last_of('/') != facePath.length() - 1)
+	{
+		facePath.append("/");
+	}
+	if(notfacePath.find_last_of('/') != notfacePath.length())
+	{
+		notfacePath.append("/");
+	}
+#ifdef DEBUG_UI
+	cout<<"\tfacePath = "<<facePath<<" from "<<faceBegin<<" to "<<faceEnd<<endl;
+	cout<<"\tnotfacePath = "<<notfacePath<<" from "<<notfaceBegin<<" to "<<notfaceEnd<<endl;
+#endif//DEBUG_UI
+	stringstream sStream;
+	string str;
+	QString qstr = tr("facePath = ");
+	qstr.append(facePath.c_str());
+	qstr.append(";from ");
+	qstr.append(str.c_str());
+	sStream<<faceBegin;
+	sStream>>str;
+	qstr.append(str.c_str());
+	qstr.append(" to ");
+	sStream<<faceEnd;
+	sStream>>str;
+	qstr.append(str.c_str());
+	qstr.append("\nnotfacePath = ");
+	qstr.append(notfacePath.c_str());
+	qstr.append(";from ");
+	sStream<<notfaceBegin;
+	sStream>>str;
+	qstr.append(str.c_str());
+	qstr.append(" to ");
+	sStream<<notfaceEnd;
+	sStream>>str;
+	qstr.append(str.c_str());
+	this->ui.yMsgText->append(qstr);
+	if(this->ps == NULL)
+	{
+		QMessageBox::information(this, tr("Error"), tr("Please train before test !")); 
+		return;
+	}
+	Mat tImg;
+	char fileName[126];
+	int truePos = 0,falsePos = 0;
+	int trueNeg = 0,falseNeg = 0;
+	for(int i = faceBegin;i <= faceEnd;i++)
+	{
+		sprintf(fileName,"%s%d.png",facePath.c_str(),i);
+		tImg = imread(fileName,IMREAD_GRAYSCALE);
+		if(this->ps->isFace(tImg))
+		{
+			truePos++;
+		}
+		else
+		{
+			falsePos++;
+		}
+	}
+	for(int i = notfaceBegin;i <= notfaceEnd;i++)
+	{
+		sprintf(fileName,"%s%d.png",notfacePath.c_str(),i);
+		tImg = imread(fileName,IMREAD_GRAYSCALE);
+		if(this->ps->isFace(tImg))
+		{
+			falseNeg++;
+		}
+		else
+		{
+			trueNeg++;
+		}
+	}
+	qstr.clear();
+	qstr.append("totalFaceNum = ");
+	sStream<<(faceEnd - faceBegin +1);
+	sStream>>str;
+	qstr.append(str.c_str());
+	qstr.append("\nCorrectJudgeFace = ");
+	sStream<<truePos;
+	sStream>>str;
+	qstr.append(str.c_str());
+	qstr.append("\nErrorJudgeFace = ");
+	sStream<<falsePos;
+	sStream>>str;
+	qstr.append(str.c_str());
+	
+	
+	qstr.append("totalnotfaceNum = ");
+	sStream<<(notfaceEnd - notfaceBegin +1);
+	sStream>>str;
+	qstr.append(str.c_str());
+	qstr.append("\nCorrectJudgeNotface = ");
+	sStream<<trueNeg;
+	sStream>>str;
+	qstr.append(str.c_str());
+	qstr.append("\nErrorJudgeNotface = ");
+	sStream<<falseNeg;
+	sStream>>str;
+	qstr.append(str.c_str());
+	this->ui.yMsgText->append(qstr);
+#ifdef DEBUG_UI
+	cout<<"totalFace = "<<faceEnd - faceBegin + 1<<endl;
+	cout<<"correctJudgeFace = "<<truePos<<endl;
+	cout<<"errorJudgeFace = "<<falsePos<<endl;
+	cout<<"totalNotface = "<<notfaceEnd - notfaceBegin + 1<<endl;
+	cout<<"correctJUdgeNotface = "<<trueNeg<<endl;
+	cout<<"errorJudgeNotface = "<<falseNeg<<endl;
+#endif//DEBUG_UI
+}
+
+void Main::on_pTestFaceChoiceFileBtn_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_pTestFaceChoiceFileBtn_clicked"<<endl;
+#endif
+	QString fileName = QFileDialog::getExistingDirectory(this, tr("Open File"), "/home/guanjiecao/document/coder/OpenCV");  
+	this->ui.pTestFaceImgPathText->setText(fileName);
+	
+}
+
+void Main::on_pTestNotfaceChoiceFileBtn_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_pTestNotFaceChoiceFileBtn_clicked"<<endl;
+#endif
+	QString fileName = QFileDialog::getExistingDirectory(this, tr("Open File"), "/home/guanjiecao/document/coder/OpenCV");  
+	this->ui.pTestNotfaceImgPathText->setText(fileName);
+}
+
+void Main::on_pTrainFaceChoiceFileBtn_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_pTrainFaceChoiceFileBtn_clicked"<<endl;
+#endif
+	QString fileName = QFileDialog::getExistingDirectory(this, tr("Open File"), "/home/guanjiecao/document/coder/OpenCV");  
+	this->ui.pTrainFaceImgPathText->setText(fileName);
+}
+
+void Main::on_pTrainNotfaceChoiceFileBtn_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_pTrainNotfaceChoiceFileBtn_clicked"<<endl;
+#endif
+	QString fileName = QFileDialog::getExistingDirectory(this, tr("Open File"), "/home/guanjiecao/document/coder/OpenCV");  
+	this->ui.pTrainNotfaceImgPathText->setText(fileName);
 }
 
 void Main::on_yStartBtn_clicked()
@@ -263,4 +501,9 @@ void Main::dealYCbCrPro(YCbCr& fd,const Mat& img)
 
 Main::~Main()
 {
+	if(this->ps != NULL)
+	{
+		delete this->ps;
+		this->ps = NULL;
+	}
 }

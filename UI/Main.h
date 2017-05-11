@@ -54,6 +54,7 @@ class Main:public QMainWindow
 	Q_OBJECT
 private:
 	Ui_MainWindow ui;
+	PCASVM* ps;
 	map<string,int> SVMKernelTypes;
 	void mat2Label(Mat mat,QLabel* label);
 	void dealYCbCrPro(YCbCr& fd,const Mat& img);
@@ -72,8 +73,12 @@ public slots:
 	/**
 	 *PCASVM算法对应监听接口实现
 	 */
-	void on_pStarTrainBtn_clicked();
-
+	void on_pStartTrain_clicked();
+	void on_pStartTest_clicked();
+	void on_pTestFaceChoiceFileBtn_clicked();
+	void on_pTestNotfaceChoiceFileBtn_clicked();
+	void on_pTrainFaceChoiceFileBtn_clicked();
+	void on_pTrainNotfaceChoiceFileBtn_clicked();
 	/**
 	 *YCbCr算法对应监听接口实现
 	 */
