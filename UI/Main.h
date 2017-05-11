@@ -39,10 +39,12 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/ml.hpp>
-#include"ui_FaceDetactUI.h"
-#include"../Adaboost.h"
-#include"../PCASVM.h"
-#include"../YCbCr.h"
+#include <string>
+#include <map>
+#include "ui_FaceDetactUI.h"
+#include "../Adaboost.h"
+#include "../PCASVM.h"
+#include "../YCbCr.h"
 
 using namespace std;
 using namespace cv;
@@ -52,6 +54,7 @@ class Main:public QMainWindow
 	Q_OBJECT
 private:
 	Ui_MainWindow ui;
+	map<string,int> SVMKernelTypes;
 	void mat2Label(Mat mat,QLabel* label);
 	void dealYCbCrPro(YCbCr& fd,const Mat& img);
 public:

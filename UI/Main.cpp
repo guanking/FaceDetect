@@ -36,6 +36,16 @@ Main::Main(QMainWindow *mainView ):QMainWindow(mainView)
 {
 	this->ui.setupUi(this);
 	this->ui.retranslateUi(this);
+	this->SVMKernelTypes.insert(pair<string,int>("LINEAR",SVM::LINEAR));
+	this->SVMKernelTypes.insert(pair<string,int>("POLY",SVM::POLY));
+	this->SVMKernelTypes.insert(pair<string,int>("RBF",SVM::RBF));
+	this->SVMKernelTypes.insert(pair<string,int>("SIGMOID",SVM::SIGMOID));
+	this->SVMKernelTypes.insert(pair<string,int>("CHI2",SVM::CHI2));
+	this->SVMKernelTypes.insert(pair<string,int>("INTER",SVM::INTER));
+	for(map<string,int>::iterator ele = this->SVMKernelTypes.begin(); ele != this->SVMKernelTypes.end();ele++)
+	{
+		this->ui.ySVMCmpBox->addItem(QString::fromStdString(ele->first));
+	}
 }
 
 void Main::on_aStartBtn_clicked()
