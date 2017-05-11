@@ -15,11 +15,16 @@ PCASVM::PCASVM(string facePath,int faceBegin,int faceEnd,string notfacePath,int 
 	cout<<"NotfaceBegin = "<<this->notfaceBegin<<endl;
 	cout<<"NotfaceEnd = "<<this->notfaceEnd<<endl;
 #endif
+	this->SVMKernelType = SVM::LINEAR;
+	this->cptPercent = 0.95;
+}
+
+void PCASVM::init()
+{
 	this->initFlatImagesAndLabels();
 	this->initPCA();
 	this->initSVM();
 }
-
 void PCASVM::initFlatImagesAndLabels()
 {
 	char fileName[126];
@@ -84,7 +89,7 @@ void PCASVM::initPCA()
 	cout<<"init pca..."<<endl;
 	cout<<"Use flat images : "<<this->flatImgs.rows<<" X "<<this->flatImgs.cols<<endl;
 #endif // DEBUG
-	this->pca = new PCA(this->flatImgs, cv::Mat(), PCA::DATA_AS_ROW, 0.95);
+	this->pca = new PCA(this->flatImgs, cv::Mat(), PCA::DATA_AS_ROW, this->cptPercent);
 #ifdef DEBUG
 	cout<<"Pca status:"<<endl;
 	cout<<"\teigenvectors : "<<this->pca->eigenvectors.rows<<" X "<<this->pca->eigenvectors.cols<<endl;
@@ -110,12 +115,22 @@ void PCASVM::initSVM()
 #endif // DEBUG
 	this->svm = SVM::create();
 	this->svm->setType(SVM::C_SVC);
-	this->svm->setKernel(SVM::LINEAR);
+	this->svm->setKernel(this->SVMKernelType);
 	this->svm->setTermCriteria(TermCriteria(TermCriteria::MAX_ITER, 100, 1e-6));
 	this->svm->train(this->trainData, ROW_SAMPLE, this->trainLabels);
 #ifdef DEBUG
 	cout<<"training data using SVM finished !"<<endl;
 #endif // DEBUG
+}
+
+void PCASVM::setCptPercent(const double& percent)
+{
+	this->cptPercent = percent;
+}
+
+void PCASVM::setSVMKernelType(const int& kernelType)
+{
+	this->SVMKernelType = kernelType;
 }
 
 PCASVM::~PCASVM()

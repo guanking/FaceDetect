@@ -27,6 +27,10 @@ public:
 	 */
 	virtual ~PCASVM();
 	/**
+	 *初始化PCA和SVM
+	 */
+	void init();
+	/**
 	 *使用PCA对图片进行成分提取，用训练好的SVM进行检测
 	 *该图片是否为人脸
 	 *@param faceImg 待检测的图片
@@ -51,9 +55,25 @@ protected:
 	 *主成分提取完成之后使用生成的数据惊醒SVM 训练
 	 */
 	void initSVM();
+	/**
+	 *设置成分百分比
+	 */
+	void setCptPercent(const double& percent);
+	/**
+	 *设置SVM使用的核函数
+	 */
+	void setSVMKernelType(const int & kernelType);
 private:
 	string facePath,notfacePath;
 	int faceBegin,notfaceBegin,faceEnd,notfaceEnd;
+	/**
+	 *成分百分比
+	 */
+	double cptPercent;
+	/**
+	 *SVM核函数类型
+	 */
+	int SVMKernelType;
 	Ptr<PCA> pca;
 	Ptr<SVM> svm;
 	/**
