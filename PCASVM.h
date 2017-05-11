@@ -27,6 +27,14 @@ public:
 	 */
 	virtual ~PCASVM();
 	/**
+	 *设置成分百分比
+	 */
+	void setCptPercent(const double& percent);
+	/**
+	 *设置SVM使用的核函数
+	 */
+	void setSVMKernelType(const int & kernelType);
+	/**
 	 *初始化PCA和SVM
 	 */
 	void init();
@@ -55,14 +63,6 @@ protected:
 	 *主成分提取完成之后使用生成的数据惊醒SVM 训练
 	 */
 	void initSVM();
-	/**
-	 *设置成分百分比
-	 */
-	void setCptPercent(const double& percent);
-	/**
-	 *设置SVM使用的核函数
-	 */
-	void setSVMKernelType(const int & kernelType);
 private:
 	string facePath,notfacePath;
 	int faceBegin,notfaceBegin,faceEnd,notfaceEnd;

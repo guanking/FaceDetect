@@ -1,4 +1,6 @@
 #include "PCASVM.h"
+#define DEBUG
+
 PCASVM::PCASVM(string facePath,int faceBegin,int faceEnd,string notfacePath,int notfaceBegin,int notfaceEnd)
 {
 	this->facePath = facePath;
@@ -92,6 +94,7 @@ void PCASVM::initPCA()
 	this->pca = new PCA(this->flatImgs, cv::Mat(), PCA::DATA_AS_ROW, this->cptPercent);
 #ifdef DEBUG
 	cout<<"Pca status:"<<endl;
+	cout<<"\tpca percent : "<<this->cptPercent<<endl;
 	cout<<"\teigenvectors : "<<this->pca->eigenvectors.rows<<" X "<<this->pca->eigenvectors.cols<<endl;
 	cout<<"\teigenvalues : "<<this->pca->eigenvalues.rows<<" X "<<this->pca->eigenvalues.cols<<endl;
 #endif // DEBUG
@@ -112,6 +115,7 @@ void PCASVM::initSVM()
 {
 #ifdef DEBUG
 	cout<<"training data using SVM...... "<<endl;
+	cout<<"SVM KernelType : "<<this->SVMKernelType<<endl;
 #endif // DEBUG
 	this->svm = SVM::create();
 	this->svm->setType(SVM::C_SVC);
