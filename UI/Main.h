@@ -52,15 +52,31 @@ class Main:public QMainWindow
 	Q_OBJECT
 private:
 	Ui_MainWindow ui;
-	Adaboost adaboost;
-	void mat2Label(Mat mat,QLabel *label);
+	void mat2Label(Mat mat,QLabel* label);
+	void dealYCbCrPro(YCbCr& fd,const Mat& img);
 public:
 	Main(QMainWindow *parent = NULL);
 	~Main();
 public slots:
+	/**
+	 *Adaboost算法对应监听借口实现
+	 */
 	void on_aStartBtn_clicked();
 	void on_aRealtimeRtb_clicked();
 	void on_aFileRtb_clicked();
 	void on_aChoiceFileBtn_clicked();
+
+	/**
+	 *PCASVM算法对应监听接口实现
+	 */
+	void on_pStarTrainBtn_clicked();
+
+	/**
+	 *YCbCr算法对应监听接口实现
+	 */
+	void on_yStartBtn_clicked();
+	void on_yRealtimeRtb_clicked();
+	void on_yFileRtb_clicked();
+	void on_yChoiceFileBtn_clicked();
 };
 #endif

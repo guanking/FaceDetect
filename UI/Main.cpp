@@ -86,9 +86,6 @@ void Main::on_aStartBtn_clicked()
 		img = imread(imgPath.c_str());
 		ada.setImage(img);
 		ada.detect();
-#ifdef DEBUG_UI
-		imshow("image",img);
-#endif//DEBUG_UI
 		this->mat2Label(img,this->ui.aSrcImgLabel);
 		this->mat2Label(ada.getDrawnImg(),this->ui.aDstImgLabel);
 		this->mat2Label(ada.getDrawnImg(),this->ui.aDstImgLabel);
@@ -121,14 +118,137 @@ void Main::on_aChoiceFileBtn_clicked()
 #endif
 	QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"), "/home/guanjiecao/study/opencv-3.2.0/samples/data",  tr("Images (*.png *.xpm *.jpg)"));  
 	this->ui.aImgPathText->setText(fileName);
+	Mat img = imread(fileName.toStdString().c_str());
+	if(img.empty())
+	{
+		QMessageBox::information(this, tr("Error"), tr("The image you have choiced is in a wrong format !"));
+		return;
+	}
+	else
+	{
+		this->mat2Label(img,this->ui.aSrcImgLabel);
+	}
+}
+
+void Main::on_pStarTrainBtn_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_pStarTrainBtn_clicked"<<endl;
+#endif
+}
+
+void Main::on_yStartBtn_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_yStartBtn_clicked"<<endl;
+#endif//DEBUG_UI
+	Mat img;
+	YCbCr fd(img);
+	fd.setUseMorphOpen(false);
+	if(this->ui.yRealtimeRtb->isChecked())
+	{
+#ifdef DEBUG_UI
+		cout<<"yRealtimeRtb is checked"<<endl;
+#endif//DEBUG_UI
+		VideoCapture cap(0);
+		if(!cap.isOpened())
+		{
+			QMessageBox::information(this, tr("Error"), tr("VideoCapture is closed !"));  
+			return;
+		}
+		while(char(waitKey(10)) != 'q' && this->ui.yRealtimeRtb->isChecked())
+		{
+#ifdef DEBUG_UI
+			cout<<"yRealtimeRtb is checked : "<<this->ui.yRealtimeRtb->isChecked()<<endl;
+#endif//DEBUG_UI
+			cap>>img;
+			this->dealYCbCrPro(fd,img);
+		}
+		cap.release();
+	}
+	else
+	{
+		QString qImgPath = this->ui.yImgPathText->text();
+		string imgPath = qImgPath.toStdString();
+#ifdef DEBUG_UI
+		cout<<"\tfileRtb is checked"<<endl;
+		cout<<"ImgPath = "<<imgPath<<endl;
+#endif
+		if(imgPath.empty())
+		{
+			QMessageBox::information(this, tr("Error"), tr("Please input image path !"));  
+			return;
+		}
+		img = imread(imgPath.c_str());
+		this->dealYCbCrPro(fd,img);
+	}
+}
+
+void Main::on_yRealtimeRtb_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_yRealtimeRtb_clicked"<<endl;
+#endif//DEBUG_UI
+	this->ui.yImgPathText->setEnabled(false);
+	this->ui.yChoiceFileBtn->setEnabled(false);
+}
+
+void Main::on_yFileRtb_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_yFileRtb_clicked"<<endl;
+#endif//DEBUG_UI
+	this->ui.yImgPathText->setEnabled(true);
+	this->ui.yChoiceFileBtn->setEnabled(true);
+}
+
+void Main::on_yChoiceFileBtn_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_yChoiceFileBtn_clicked"<<endl;
+#endif//DEBUG_UI
+	QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"), "/home/guanjiecao/study/opencv-3.2.0/samples/data",  tr("Images (*.png *.xpm *.jpg)"));  
+	this->ui.yImgPathText->setText(fileName);
+	Mat img = imread(fileName.toStdString().c_str());
+	if(img.empty())
+	{
+		QMessageBox::information(this, tr("Error"), tr("The image you have choiced is in a wrong format !"));
+		return;
+	}
+	else
+	{
+		this->mat2Label(img,this->ui.ySrcImgLabel);
+	}
 }
 
 void Main::mat2Label(Mat image,QLabel* label)
 {
-	cvtColor(image,image,CV_BGR2RGB);
+	if(image.channels() == 3 || image.channels() == 4)
+	{
+		cvtColor(image,image,CV_BGR2RGB);
+	}
+	else
+	{
+		cvtColor(image,image,CV_GRAY2RGB);
+	}
     QImage img = QImage((const unsigned char*)(image.data),image.cols,image.rows, image.cols*image.channels(),  QImage::Format_RGB888);  
 	label->clear();
 	label->setPixmap(QPixmap::fromImage(img));
+}
+
+void Main::dealYCbCrPro(YCbCr& fd,const Mat& img)
+{
+	fd.setImg(img);
+	this->mat2Label(img,this->ui.ySrcImgLabel);
+	fd.init();
+	fd.initOrdinarySkin();
+	this->mat2Label(fd.getCacheImg(),this->ui.ySkinImgLabel);
+	fd.morph();
+	this->mat2Label(fd.getCacheImg(),this->ui.yMorphImgLabel);
+	fd.splitArea();
+	this->mat2Label(fd.getDrawnImg(),this->ui.ySplitAreaImgLabel);
+	fd.selectLegal();
+	this->mat2Label(fd.getDrawnImg(),this->ui.yDstImgLabel);
 }
 
 Main::~Main()
