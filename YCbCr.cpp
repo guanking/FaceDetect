@@ -292,3 +292,8 @@ Mat YCbCr::getDrawnImg()
 #endif//DEBUG
 	return tImg;
 }
+
+const Mat YCbCr::getCacheImg()
+{
+	return this->resultImg;
+}

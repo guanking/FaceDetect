@@ -97,6 +97,10 @@ public:
 	*/
 	Mat getDrawnImg();
 	/**
+	 *获取处理过程中的图像
+	 */
+	const Mat getCacheImg();
+	/**
 	肤色检测
 	*/
 	void initOrdinarySkin();
