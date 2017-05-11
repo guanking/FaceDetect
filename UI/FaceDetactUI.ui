@@ -36,7 +36,7 @@
     <item row="0" column="1">
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="adaBoostTab">
        <attribute name="title">
@@ -98,13 +98,13 @@
          <rect>
           <x>500</x>
           <y>40</y>
-          <width>141</width>
-          <height>61</height>
+          <width>95</width>
+          <height>42</height>
          </rect>
         </property>
         <property name="font">
          <font>
-          <pointsize>30</pointsize>
+          <pointsize>18</pointsize>
           <weight>75</weight>
           <bold>true</bold>
           <stylestrategy>PreferDefault</stylestrategy>
@@ -979,6 +979,8 @@ border-radius:5px;
           <string notr="true">#yMsgText
 {
 color:rgb(241,241,0);
+border:10px solid;
+border-radius:20px;
 }</string>
          </property>
          <property name="readOnly">
