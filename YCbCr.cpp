@@ -141,7 +141,7 @@ void YCbCr::selectLegal()
 	for(list<Rect>::iterator ele = this->faceAreas.begin();ele != this->faceAreas.end();)
 	{
 		double rate = double(ele->width)/ele->height;
-		if(rate < 0.6 || rate > 2.0)
+		if(rate < 0.5 || rate > 1.2)
 		{
 #ifdef DEBUG
 			list<Rect>::iterator tele = ele;
