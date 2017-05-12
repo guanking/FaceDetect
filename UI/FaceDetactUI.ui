@@ -388,7 +388,7 @@ border-radius:5px;
             <rect>
              <x>100</x>
              <y>110</y>
-             <width>237</width>
+             <width>243</width>
              <height>30</height>
             </rect>
            </property>
@@ -415,6 +415,12 @@ border-radius:5px;
               <property name="alignment">
                <set>Qt::AlignCenter</set>
               </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>1000</number>
+              </property>
              </widget>
             </item>
             <item row="0" column="4">
@@ -438,6 +444,12 @@ border-radius:5px;
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>1000</number>
               </property>
              </widget>
             </item>
@@ -502,7 +514,7 @@ border-radius:5px;
             <rect>
              <x>100</x>
              <y>110</y>
-             <width>237</width>
+             <width>243</width>
              <height>30</height>
             </rect>
            </property>
@@ -529,6 +541,12 @@ border-radius:5px;
               <property name="alignment">
                <set>Qt::AlignCenter</set>
               </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>1000</number>
+              </property>
              </widget>
             </item>
             <item row="0" column="4">
@@ -552,6 +570,12 @@ border-radius:5px;
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>1000</number>
               </property>
              </widget>
             </item>
@@ -713,7 +737,7 @@ border-radius:5px;
           <enum>QTabWidget::Rounded</enum>
          </property>
          <property name="currentIndex">
-          <number>1</number>
+          <number>0</number>
          </property>
          <property name="usesScrollButtons">
           <bool>true</bool>
@@ -756,7 +780,7 @@ border-radius:5px;
             <rect>
              <x>42</x>
              <y>93</y>
-             <width>237</width>
+             <width>243</width>
              <height>30</height>
             </rect>
            </property>
@@ -783,6 +807,12 @@ border-radius:5px;
               <property name="alignment">
                <set>Qt::AlignCenter</set>
               </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>1000</number>
+              </property>
              </widget>
             </item>
             <item row="0" column="4">
@@ -806,6 +836,12 @@ border-radius:5px;
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>1000</number>
               </property>
              </widget>
             </item>
@@ -831,7 +867,7 @@ border-radius:5px;
             <rect>
              <x>42</x>
              <y>93</y>
-             <width>237</width>
+             <width>243</width>
              <height>30</height>
             </rect>
            </property>
@@ -858,6 +894,12 @@ border-radius:5px;
               <property name="alignment">
                <set>Qt::AlignCenter</set>
               </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>1000</number>
+              </property>
              </widget>
             </item>
             <item row="0" column="4">
@@ -881,6 +923,12 @@ border-radius:5px;
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>1000</number>
               </property>
              </widget>
             </item>
