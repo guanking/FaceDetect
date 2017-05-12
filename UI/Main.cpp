@@ -129,7 +129,7 @@ void Main::on_aChoiceFileBtn_clicked()
 #ifdef DEBUG_UI
 	cout<<"on_aChoiceFileBtn_clicked"<<endl;
 #endif
-	QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"), "/home/guanjiecao/study/opencv-3.2.0/samples/data",  tr("Images (*.png *.xpm *.jpg)"));  
+	QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"), "./img",  tr("Images (*.png *.xpm *.jpg)"));  
 	this->ui.aImgPathText->setText(fileName);
 	Mat img = imread(fileName.toStdString().c_str());
 	if(img.empty())
@@ -353,7 +353,7 @@ void Main::on_pTestFaceChoiceFileBtn_clicked()
 #ifdef DEBUG_UI
 	cout<<"on_pTestFaceChoiceFileBtn_clicked"<<endl;
 #endif
-	QString fileName = QFileDialog::getExistingDirectory(this, tr("Open File"), "/home/guanjiecao/document/coder/OpenCV");  
+	QString fileName = QFileDialog::getExistingDirectory(this, tr("Open File"), "./img");  
 	this->ui.pTestFaceImgPathText->setText(fileName);
 	
 }
@@ -363,7 +363,7 @@ void Main::on_pTestNotfaceChoiceFileBtn_clicked()
 #ifdef DEBUG_UI
 	cout<<"on_pTestNotFaceChoiceFileBtn_clicked"<<endl;
 #endif
-	QString fileName = QFileDialog::getExistingDirectory(this, tr("Open File"), "/home/guanjiecao/document/coder/OpenCV");  
+	QString fileName = QFileDialog::getExistingDirectory(this, tr("Open File"), "./img");  
 	this->ui.pTestNotfaceImgPathText->setText(fileName);
 }
 
@@ -372,7 +372,7 @@ void Main::on_pTrainFaceChoiceFileBtn_clicked()
 #ifdef DEBUG_UI
 	cout<<"on_pTrainFaceChoiceFileBtn_clicked"<<endl;
 #endif
-	QString fileName = QFileDialog::getExistingDirectory(this, tr("Open File"), "/home/guanjiecao/document/coder/OpenCV");  
+	QString fileName = QFileDialog::getExistingDirectory(this, tr("Open File"), "./img");  
 	this->ui.pTrainFaceImgPathText->setText(fileName);
 }
 
@@ -381,7 +381,7 @@ void Main::on_pTrainNotfaceChoiceFileBtn_clicked()
 #ifdef DEBUG_UI
 	cout<<"on_pTrainNotfaceChoiceFileBtn_clicked"<<endl;
 #endif
-	QString fileName = QFileDialog::getExistingDirectory(this, tr("Open File"), "/home/guanjiecao/document/coder/OpenCV");  
+	QString fileName = QFileDialog::getExistingDirectory(this, tr("Open File"), "./img");  
 	this->ui.pTrainNotfaceImgPathText->setText(fileName);
 }
 
@@ -455,7 +455,7 @@ void Main::on_yChoiceFileBtn_clicked()
 #ifdef DEBUG_UI
 	cout<<"on_yChoiceFileBtn_clicked"<<endl;
 #endif//DEBUG_UI
-	QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"), "/home/guanjiecao/study/opencv-3.2.0/samples/data",  tr("Images (*.png *.xpm *.jpg)"));  
+	QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"), "./img",  tr("Images (*.png *.xpm *.jpg)"));  
 	this->ui.yImgPathText->setText(fileName);
 	Mat img = imread(fileName.toStdString().c_str());
 	if(img.empty())
