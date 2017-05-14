@@ -86,5 +86,14 @@ public slots:
 	void on_yRealtimeRtb_clicked();
 	void on_yFileRtb_clicked();
 	void on_yChoiceFileBtn_clicked();
+	/**
+	 *算法比较界面接口实现
+	 */
+	void on_cFaceChoiceFileBtn_clicked();
+	void on_cNotfaceChoiceFileBtn_clicked();
+	void on_cStartBtn_clicked();
+	void on_cAdaBoostRtb_clicked();
+	void on_cPCASVMRtb_clicked();
+	void on_cYCrCbRtb_clicked();
 };
 #endif

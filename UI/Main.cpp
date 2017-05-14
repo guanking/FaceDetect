@@ -499,6 +499,99 @@ void Main::dealYCbCrPro(YCbCr& fd,const Mat& img)
 	this->mat2Label(fd.getDrawnImg(),this->ui.yDstImgLabel);
 }
 
+void Main::on_cFaceChoiceFileBtn_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_cFaceChoiceFileBtn_clicked"<<endl;
+#endif//DEBUG_UI
+	QString fileName = QFileDialog::getExistingDirectory(this, tr("Open File"), "./img");
+	this->ui.cFaceImgPathText->setText(fileName);
+}
+
+void Main::on_cNotfaceChoiceFileBtn_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_cNotfaceChoiceFileBtn_clicked"<<endl;
+#endif//DEBUG_UI
+	QString fileName = QFileDialog::getExistingDirectory(this, tr("Open File"), "./img");
+	this->ui.cNotfaceImgPathText->setText(fileName);
+}
+
+void Main::on_cStartBtn_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_cStartBtn_clicked"<<endl;
+#endif//DEBUG_UI
+	String faceDir = this->ui.cFaceImgPathText->text().toStdString();
+	String notfaceDir = this->ui.cNotfaceImgPathText->text().toStdString();
+	int faceBegin = this->ui.cFaceBeginBox->value();
+	int faceEnd = this->ui.cFaceEndBox->value();
+	int notfaceBegin = this->ui.cNotfaceBeginBox->value();
+	int notfaceEnd = this->ui.cNotfaceEndBox->value();
+	if(faceDir.find_last_of("/") != faceDir.length())
+	{
+		faceDir += "/";
+	}
+	if(notfaceDir.find_last_of("/") != notfaceDir.length())
+	{
+		notfaceDir += "/";
+	}
+#ifdef DEBUG_UI
+	cout<<"faceDir = "<<faceDir<<";from "<<faceBegin<<" to "<<faceEnd<<endl;
+	cout<<"notfaceDir = "<<notfaceDir<<";from "<<notfaceBegin<<" to "<<notfaceEnd<<endl;
+#endif
+	int faceNum = faceEnd - faceBegin + 1;
+	int notfaceNum = notfaceEnd - notfaceBegin + 1;
+	stringstream sStream;
+	string str;
+	sStream<<faceNum;
+	sStream>>str;
+	this->ui.cFaceNum->setText(QString::fromStdString(str));
+	sStream<<notfaceNum;
+	sStream>>str;
+	this->ui.cNotfaceNum->setText(QString::fromStdString(str);
+	if(this->ui.cAdaBoostRtb->isChecked())
+	{
+#ifdef DEBUG_UI
+		cout<<"AdaBoost is choiced !"<<endl;
+#endif
+	}else if(this->ui.cPCASVMRtb->isChecked())
+	{
+#ifdef DEBUG_UI
+		cout<<"PCASVM is choiced !"<<endl;
+#endif
+	}else
+	{
+#ifdef DEBUG_UI
+		cout<<"YCrCb is choiced !"<<endl;
+#endif
+	}
+}
+
+void Main::on_cAdaBoostRtb_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_cAdaBoostRtb_clicked"<<endl;
+#endif//DEBUG_UI
+	this->ui.cAlgorithm->setText(tr("AdaBoost"));
+}
+
+void Main::on_cPCASVMRtb_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_cPCASVMRtb_clicked"<<endl;
+#endif//DEBUG_UI
+	this->ui.cAlgorithm->setText(tr("PCASVM"));
+}
+
+void Main::on_cYCrCbRtb_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_cYCrCbRtb_clicked"<<endl;
+#endif//DEBUG_UI
+	this->ui.cAlgorithm->setText(tr("YCrCb"));
+}
+
 Main::~Main()
 {
 	if(this->ps != NULL)
