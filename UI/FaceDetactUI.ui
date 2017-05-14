@@ -1734,7 +1734,7 @@ margin-bottom:10px;
          </property>
         </item>
        </widget>
-       <widget class="QPushButton" name="cBegin">
+       <widget class="QPushButton" name="cStartBtn">
         <property name="geometry">
          <rect>
           <x>520</x>
