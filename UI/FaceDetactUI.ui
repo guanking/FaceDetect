@@ -1849,7 +1849,7 @@ boder-radius:2px solid;
          <set>Qt::AlignCenter</set>
         </property>
        </widget>
-       <widget class="QLabel" name="cDetImgLabel">
+       <widget class="QLabel" name="cDstImgLabel">
         <property name="enabled">
          <bool>true</bool>
         </property>
