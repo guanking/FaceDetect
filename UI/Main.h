@@ -54,10 +54,16 @@ class Main:public QMainWindow
 	Q_OBJECT
 private:
 	Ui_MainWindow ui;
+	Adaboost ada;
 	PCASVM* ps;
+	YCbCr* fd;
 	map<string,int> SVMKernelTypes;
 	void mat2Label(Mat mat,QLabel* label);
-	void dealYCbCrPro(YCbCr& fd,const Mat& img);
+	void dealYCbCrPro(const Mat& img);
+	void compareDetect(const string& faceDir,const int& faceBegin,const int& faceEnd,const string& notfaceDir,const int& notfaceBegin,const int& notfaceEnd,void (Main::*detectPro)(Mat& src,int& cnt));
+	void compareAdaBoost(Mat& src,int& cnt);
+	void comparePCASVM(Mat& src,int& cnt);
+	void compareYCrCb(Mat& src,int& cnt);
 public:
 	Main(QMainWindow *parent = NULL);
 	~Main();

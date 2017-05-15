@@ -39,6 +39,7 @@ Main::Main(QMainWindow *mainView ):QMainWindow(mainView)
 	this->ui.setupUi(this);
 	this->ui.retranslateUi(this);
 	this->ps = NULL;
+	this->fd = NULL;
 	this->SVMKernelTypes.insert(pair<string,int>("LINEAR",SVM::LINEAR));
 	this->SVMKernelTypes.insert(pair<string,int>("POLY",SVM::POLY));
 	this->SVMKernelTypes.insert(pair<string,int>("RBF",SVM::RBF));
@@ -56,7 +57,6 @@ void Main::on_aStartBtn_clicked()
 #ifdef DEBUG_UI
 	cout<<"on_aStartBtn_clicked"<<endl;
 #endif
-	Adaboost ada;
 	Mat img;
 	if(this->ui.aRealtimeRtb->isChecked())
 	{
@@ -75,10 +75,10 @@ void Main::on_aStartBtn_clicked()
 			cout<<"aRealtimeRtb is checked : "<<this->ui.aRealtimeRtb->isChecked()<<endl;
 #endif//DEBUG_UI
 			cap>>img;
-			ada.setImage(img);
-			ada.detect();
+			this->ada.setImage(img);
+			this->ada.detect();
 			this->mat2Label(img,this->ui.aSrcImgLabel);
-			this->mat2Label(ada.getDrawnImg(),this->ui.aDstImgLabel);
+			this->mat2Label(this->ada.getDrawnImg(),this->ui.aDstImgLabel);
 			waitKey(100);
 		}
 		cap.release();
@@ -97,11 +97,11 @@ void Main::on_aStartBtn_clicked()
 			return;
 		}
 		img = imread(imgPath.c_str());
-		ada.setImage(img);
-		ada.detect();
+		this->ada.setImage(img);
+		this->ada.detect();
 		this->mat2Label(img,this->ui.aSrcImgLabel);
-		this->mat2Label(ada.getDrawnImg(),this->ui.aDstImgLabel);
-		this->mat2Label(ada.getDrawnImg(),this->ui.aDstImgLabel);
+		this->mat2Label(this->ada.getDrawnImg(),this->ui.aDstImgLabel);
+		this->mat2Label(this->ada.getDrawnImg(),this->ui.aDstImgLabel);
 	}
 }
 
@@ -391,8 +391,9 @@ void Main::on_yStartBtn_clicked()
 	cout<<"on_yStartBtn_clicked"<<endl;
 #endif//DEBUG_UI
 	Mat img;
-	YCbCr fd(img);
-	fd.setUseMorphOpen(false);
+	if(this->fd == NULL)
+		this->fd = new YCbCr(img);
+	this->fd->setUseMorphOpen(false);
 	if(this->ui.yRealtimeRtb->isChecked())
 	{
 #ifdef DEBUG_UI
@@ -410,7 +411,7 @@ void Main::on_yStartBtn_clicked()
 			cout<<"yRealtimeRtb is checked : "<<this->ui.yRealtimeRtb->isChecked()<<endl;
 #endif//DEBUG_UI
 			cap>>img;
-			this->dealYCbCrPro(fd,img);
+			this->dealYCbCrPro(img);
 		}
 		cap.release();
 	}
@@ -428,7 +429,7 @@ void Main::on_yStartBtn_clicked()
 			return;
 		}
 		img = imread(imgPath.c_str());
-		this->dealYCbCrPro(fd,img);
+		this->dealYCbCrPro(img);
 	}
 }
 
@@ -484,19 +485,19 @@ void Main::mat2Label(Mat image,QLabel* label)
 	label->setPixmap(QPixmap::fromImage(img));
 }
 
-void Main::dealYCbCrPro(YCbCr& fd,const Mat& img)
+void Main::dealYCbCrPro(const Mat& img)
 {
-	fd.setImg(img);
+	this->fd->setImg(img);
 	this->mat2Label(img,this->ui.ySrcImgLabel);
-	fd.init();
-	fd.initOrdinarySkin();
-	this->mat2Label(fd.getCacheImg(),this->ui.ySkinImgLabel);
-	fd.morph();
-	this->mat2Label(fd.getCacheImg(),this->ui.yMorphImgLabel);
-	fd.splitArea();
-	this->mat2Label(fd.getDrawnImg(),this->ui.ySplitAreaImgLabel);
-	fd.selectLegal();
-	this->mat2Label(fd.getDrawnImg(),this->ui.yDstImgLabel);
+	this->fd->init();
+	this->fd->initOrdinarySkin();
+	this->mat2Label(this->fd->getCacheImg(),this->ui.ySkinImgLabel);
+	this->fd->morph();
+	this->mat2Label(this->fd->getCacheImg(),this->ui.yMorphImgLabel);
+	this->fd->splitArea();
+	this->mat2Label(this->fd->getDrawnImg(),this->ui.ySplitAreaImgLabel);
+	this->fd->selectLegal();
+	this->mat2Label(this->fd->getDrawnImg(),this->ui.yDstImgLabel);
 }
 
 void Main::on_cFaceChoiceFileBtn_clicked()
@@ -547,57 +548,28 @@ void Main::on_cStartBtn_clicked()
 	sStream<<faceNum;
 	sStream>>str;
 	this->ui.cFaceNumText->setText(QString::fromStdString(str));
+	sStream.clear();
 	sStream<<notfaceNum;
 	sStream>>str;
 	this->ui.cNotfaceNum->setText(QString::fromStdString(str));
-	int truePos = 0;
-	int trueNeg = 0;
-	char path[256];
-	Mat img;
 	if(this->ui.cAdaBoostRtb->isChecked())
 	{
 #ifdef DEBUG_UI
 		cout<<"AdaBoost is choiced !"<<endl;
 #endif
-		Adaboost ada;
-		for(int i = faceBegin;i <= faceEnd; i++)
-		{
-			sprintf(path, "%s%d.png",faceDir.c_str(),i);
-			img = imread(path);
-			if(img.empty())
-			{
-				sprintf(path, "%s%d.jpg",faceDir.c_str(),i);
-				img = imread(path);
-			}
-			if(img.empty())
-			{
-				return;
-			}
-			waitKey(10);
-			this->mat2Label(img,this->ui.cSrcImgLabel);
-			ada.setImage(img);
-			ada.detect();
-			this->mat2Label(ada.getDrawnImg(),this->ui.cDstImgLabel);
-			imshow("dst",ada.getDrawnImg());
-			if(ada.hasFace())
-			{
-				truePos++;
-			}
-#ifdef DEBUG_UI
-			string debug_str = ada.hasFace()?" is face !":" isn't face !";
-			cout<<i<<" : "<<path<<debug_str<<endl;
-#endif//DEBUG_UI
-		}
+		this->compareDetect(faceDir,faceBegin,faceEnd,notfaceDir,notfaceBegin,notfaceEnd,&Main::compareAdaBoost);
 	}else if(this->ui.cPCASVMRtb->isChecked())
 	{
 #ifdef DEBUG_UI
 		cout<<"PCASVM is choiced !"<<endl;
 #endif
+		this->compareDetect(faceDir,faceBegin,faceEnd,notfaceDir,notfaceBegin,notfaceEnd,&Main::comparePCASVM);
 	}else
 	{
 #ifdef DEBUG_UI
 		cout<<"YCrCb is choiced !"<<endl;
 #endif
+		this->compareDetect(faceDir,faceBegin,faceEnd,notfaceDir,notfaceBegin,notfaceEnd,&Main::compareYCrCb);
 	}
 }
 
@@ -625,11 +597,109 @@ void Main::on_cYCrCbRtb_clicked()
 	this->ui.cAlgorithm->setText(tr("YCrCb"));
 }
 
+void Main::compareDetect(const string& faceDir,const int& faceBegin,const int& faceEnd,const string& notfaceDir,const int& notfaceBegin,const int& notfaceEnd,void (Main::*detectPro)(Mat& src,int& cnt))
+{
+	int truePos = 0;
+	int falseNeg = 0;
+	char path[256];
+	Mat img;
+	for(int i = faceBegin;i <= faceEnd; i++)
+	{
+		sprintf(path, "%s%d.png",faceDir.c_str(),i);
+		img = imread(path);
+		if(img.empty())
+		{
+			sprintf(path, "%s%d.jpg",faceDir.c_str(),i);
+			img = imread(path);
+		}
+		if(img.empty())
+		{
+			return;
+		}
+#ifdef DEBUG_UI
+		cout<<path;
+#endif//DEBUG_UI
+		(this->*detectPro)(img,truePos);
+	}
+	for(int  i = notfaceBegin;i <= notfaceEnd; i++)
+	{
+		sprintf(path,"%s%d.png",notfaceDir.c_str(),i);
+		img = imread(path);
+		if(img.empty())
+		{
+			sprintf(path,"%s%d.jpg",notfaceDir.c_str(),i);
+			img = imread(path);
+		}
+		if(img.empty())
+		{
+			return;
+		}
+#ifdef DEBUG_UI
+		cout<<path;
+#endif//DEBUG_UI
+		(this->*detectPro)(img,falseNeg);
+	}
+	int faceNum = faceEnd - faceBegin + 1;
+	int notfaceNum = notfaceEnd - notfaceBegin + 1;
+	string str;
+	stringstream sStream;
+	sStream<<faceNum + notfaceNum;
+	sStream>>str;
+	this->ui.cResultTable->item(0,0)->setText(QString::fromStdString(str));
+	sStream.clear();
+	sStream<<truePos;
+	sStream>>str;
+	this->ui.cResultTable->item(0,1)->setText(QString::fromStdString(str));
+	sStream.clear();
+	sStream<<falseNeg;
+	sStream>>str;
+	this->ui.cResultTable->item(0,2)->setText(QString::fromStdString(str));
+	char preStr[32];
+	sprintf(preStr,"%.2f%%",truePos * 100.0 / faceNum);
+	this->ui.cResultTable->item(0,3)->setText(QString::fromStdString(preStr));
+	sprintf(preStr,"%.2f%%",(notfaceNum - falseNeg) * 100.0 / notfaceNum);
+	this->ui.cResultTable->item(0,4)->setText(QString::fromStdString(preStr));
+	sprintf(preStr,"%.2f%%",(faceNum - truePos) * 100.0 / faceNum);
+	this->ui.cResultTable->item(0,5)->setText(QString::fromStdString(preStr));
+	sprintf(preStr,"%.2f%%",falseNeg * 100.0 / notfaceNum);
+	this->ui.cResultTable->item(0,6)->setText(QString::fromStdString(preStr));
+}
+
+void Main::compareAdaBoost(Mat& src,int& cnt)
+{
+		waitKey(10);
+		this->mat2Label(src,this->ui.cSrcImgLabel);
+		this->ada.setImage(src);
+		this->ada.detect();
+		this->mat2Label(this->ada.getDrawnImg(),this->ui.cDstImgLabel);
+		if(this->ada.hasFace())
+		{
+			cnt++;
+		}
+#ifdef DEBUG_UI
+			string debug_str = this->ada.hasFace()?" is face !":" isn't face !";
+			cout<<debug_str<<endl;
+#endif//DEBUG_UI
+}
+
+void Main::comparePCASVM(Mat& src,int& cnt)
+{
+}
+
+void Main::compareYCrCb(Mat& src,int& cnt)
+{
+}
+
 Main::~Main()
 {
 	if(this->ps != NULL)
 	{
 		delete this->ps;
 		this->ps = NULL;
+	}
+	if(this->fd != NULL)
+	{
+		delete this->fd;
+		this->fd = NULL;
 	}
 }
