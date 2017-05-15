@@ -527,7 +527,7 @@ void Main::on_cStartBtn_clicked()
 	int faceBegin = this->ui.cFaceBeginBox->value();
 	int faceEnd = this->ui.cFaceEndBox->value();
 	int notfaceBegin = this->ui.cNotfaceBeginBox->value();
-	int notfaceEnd = this->ui.cNotfaceEndBox->value();
+	int notfaceEnd = this->ui.pTrainNotfaceEndBox_2->value();
 	if(faceDir.find_last_of("/") != faceDir.length())
 	{
 		faceDir += "/";
@@ -546,15 +546,48 @@ void Main::on_cStartBtn_clicked()
 	string str;
 	sStream<<faceNum;
 	sStream>>str;
-	this->ui.cFaceNum->setText(QString::fromStdString(str));
+	this->ui.cFaceNumText->setText(QString::fromStdString(str));
 	sStream<<notfaceNum;
 	sStream>>str;
-	this->ui.cNotfaceNum->setText(QString::fromStdString(str);
+	this->ui.cNotfaceNum->setText(QString::fromStdString(str));
+	int truePos = 0;
+	int trueNeg = 0;
+	char path[256];
+	Mat img;
 	if(this->ui.cAdaBoostRtb->isChecked())
 	{
 #ifdef DEBUG_UI
 		cout<<"AdaBoost is choiced !"<<endl;
 #endif
+		Adaboost ada;
+		for(int i = faceBegin;i <= faceEnd; i++)
+		{
+			sprintf(path, "%s%d.png",faceDir.c_str(),i);
+			img = imread(path);
+			if(img.empty())
+			{
+				sprintf(path, "%s%d.jpg",faceDir.c_str(),i);
+				img = imread(path);
+			}
+			if(img.empty())
+			{
+				return;
+			}
+			waitKey(10);
+			this->mat2Label(img,this->ui.cSrcImgLabel);
+			ada.setImage(img);
+			ada.detect();
+			this->mat2Label(ada.getDrawnImg(),this->ui.cDstImgLabel);
+			imshow("dst",ada.getDrawnImg());
+			if(ada.hasFace())
+			{
+				truePos++;
+			}
+#ifdef DEBUG_UI
+			string debug_str = ada.hasFace()?" is face !":" isn't face !";
+			cout<<i<<" : "<<path<<debug_str<<endl;
+#endif//DEBUG_UI
+		}
 	}else if(this->ui.cPCASVMRtb->isChecked())
 	{
 #ifdef DEBUG_UI
