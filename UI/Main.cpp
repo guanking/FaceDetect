@@ -529,6 +529,16 @@ void Main::on_cStartBtn_clicked()
 	int faceEnd = this->ui.cFaceEndBox->value();
 	int notfaceBegin = this->ui.cNotfaceBeginBox->value();
 	int notfaceEnd = this->ui.pTrainNotfaceEndBox_2->value();
+	if(faceDir.length() == 0)
+	{
+		QMessageBox::information(this, tr("Error"), tr("Please choice face directory !")); 
+		return;
+	}
+	if(notfaceDir.length() == 0)
+	{
+		QMessageBox::information(this, tr("Error"), tr("Please choice notface directory !")); 
+		return ;
+	}
 	if(faceDir.find_last_of("/") != faceDir.length())
 	{
 		faceDir += "/";
@@ -563,12 +573,22 @@ void Main::on_cStartBtn_clicked()
 #ifdef DEBUG_UI
 		cout<<"PCASVM is choiced !"<<endl;
 #endif
+		if(this->ps == NULL)
+		{
+			QMessageBox::information(this, tr("Error"), tr("Please train before test !")); 
+			return;
+		}
 		this->compareDetect(faceDir,faceBegin,faceEnd,notfaceDir,notfaceBegin,notfaceEnd,&Main::comparePCASVM);
 	}else
 	{
 #ifdef DEBUG_UI
 		cout<<"YCrCb is choiced !"<<endl;
 #endif
+		if(this->fd == NULL)
+		{
+			this->fd = new YCbCr(Mat());
+			this->fd->setUseMorphOpen(false);
+		}
 		this->compareDetect(faceDir,faceBegin,faceEnd,notfaceDir,notfaceBegin,notfaceEnd,&Main::compareYCrCb);
 	}
 }
@@ -614,6 +634,7 @@ void Main::compareDetect(const string& faceDir,const int& faceBegin,const int& f
 		}
 		if(img.empty())
 		{
+			QMessageBox::information(this, tr("Error"), tr(path)); 
 			return;
 		}
 #ifdef DEBUG_UI
@@ -632,6 +653,7 @@ void Main::compareDetect(const string& faceDir,const int& faceBegin,const int& f
 		}
 		if(img.empty())
 		{
+			QMessageBox::information(this, tr("Error"), tr(path)); 
 			return;
 		}
 #ifdef DEBUG_UI
@@ -684,10 +706,41 @@ void Main::compareAdaBoost(Mat& src,int& cnt)
 
 void Main::comparePCASVM(Mat& src,int& cnt)
 {
+	waitKey(10);
+	this->mat2Label(src,this->ui.cSrcImgLabel);
+	if(src.channels() != 1)
+	{
+#ifdef DEBUG_UI
+		cout<<" translate to gray image ";
+#endif//DEBUG_UI
+		cvtColor(src,src,CV_BGR2GRAY);
+	}
+	this->mat2Label(src,this->ui.cDstImgLabel);
+	if(this->ps->isFace(src))
+	{
+		cnt++;
+	}
+#ifdef DEBUG_UI
+			string debug_str = this->ps->isFace(src)?" is face !":" isn't face !";
+			cout<<debug_str<<endl;
+#endif//DEBUG_UI
 }
-
 void Main::compareYCrCb(Mat& src,int& cnt)
 {
+	waitKey(10);
+	this->fd->setImg(src);
+	this->mat2Label(src,this->ui.cSrcImgLabel);
+	this->fd->init();
+	this->fd->detect();
+	this->mat2Label(this->fd->getDrawnImg(),this->ui.cDstImgLabel);
+	if(this->fd->isFace())
+	{
+		cnt++;
+	}
+#ifdef DEBUG_UI
+			string debug_str = this->fd->isFace()?" is face !":" isn't face !";
+			cout<<debug_str<<endl;
+#endif//DEBUG_UI
 }
 
 Main::~Main()
