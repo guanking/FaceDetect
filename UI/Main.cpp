@@ -562,6 +562,7 @@ void Main::on_cStartBtn_clicked()
 	sStream<<notfaceNum;
 	sStream>>str;
 	this->ui.cNotfaceNum->setText(QString::fromStdString(str));
+	int64 timerBegin = getTickCount();//timer
 	if(this->ui.cAdaBoostRtb->isChecked())
 	{
 #ifdef DEBUG_UI
@@ -591,6 +592,10 @@ void Main::on_cStartBtn_clicked()
 		}
 		this->compareDetect(faceDir,faceBegin,faceEnd,notfaceDir,notfaceBegin,notfaceEnd,&Main::compareYCrCb);
 	}
+	int64 timerEnd = getTickCount();
+	char timerStr[256];
+	sprintf(timerStr,"%s\n\t%.2f ms","Total Time:",1000 * (timerEnd - timerBegin) / getTickFrequency());
+	QMessageBox::information(this, tr("Finish"), tr(timerStr)); 
 }
 
 void Main::on_cAdaBoostRtb_clicked()
