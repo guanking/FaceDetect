@@ -1649,32 +1649,32 @@ margin-bottom:10px;
         </column>
         <column>
          <property name="text">
-          <string>检测出的人脸数</string>
+          <string>人脸数</string>
          </property>
         </column>
         <column>
          <property name="text">
-          <string>检测出的非人脸数</string>
+          <string>误检数</string>
          </property>
         </column>
         <column>
          <property name="text">
-          <string>误检率</string>
+          <string>检测率</string>
          </property>
         </column>
         <column>
          <property name="text">
-          <string>误报率</string>
-         </property>
-        </column>
-        <column>
-         <property name="text">
-          <string>误检率</string>
+          <string>过滤率</string>
          </property>
         </column>
         <column>
          <property name="text">
           <string>漏检率</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>误检率</string>
          </property>
         </column>
         <item row="0" column="0">
