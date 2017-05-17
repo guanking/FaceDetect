@@ -1,5 +1,4 @@
 #include "PCASVM.h"
-#define DEBUG
 
 PCASVM::PCASVM(string facePath,int faceBegin,int faceEnd,string notfacePath,int notfaceBegin,int notfaceEnd)
 {
