@@ -164,34 +164,12 @@ void Main::on_pStartTrain_clicked()
 	{
 		notfacePath.append("/");
 	}
-	string str = "Face Path = ";
-	str.append(facePath);
-	str += "; from ";
-	this->ui.yMsgText->setText(QString::fromStdString(str));
-	stringstream sStream;
-	sStream<<faceBegin;
-	sStream>>str;
-	str += "to";
-	this->ui.yMsgText->append(QString::fromStdString(str));
-	sStream<<faceEnd;
-	sStream>>str;
-	str.append("\nnotfacePath = ");
-	str.append(notfacePath);
-	str.append("; from ");
-	this->ui.yMsgText->append(QString::fromStdString(str));
-	sStream<<notfaceBegin;
-	sStream>>str;
-	str.append("to");
-	this->ui.yMsgText->append(QString::fromStdString(str));
-	sStream<<notfaceEnd;
-	sStream>>str;
-	str.append("\nPCA component is ");
-	this->ui.yMsgText->append(QString::fromStdString(str));
-	sStream<<pcaPercent/100.0;
-	sStream>>str;
-	str.append("%\nSVM kernel type is ");
-	str.append(kernelType);
-	this->ui.yMsgText->append(QString::fromStdString(str));
+	char str[256];
+	sprintf(str,"Face Path = %s\nfrom %d to %d\nNotfacePath = %s\nfrom %d to %d\n \
+			PCA component is %.2lf%%\nSVM kernel type is %s\n",
+			facePath.c_str(),faceBegin,faceEnd,notfacePath.c_str(),notfaceBegin,notfaceEnd,
+			pcaPercent/100.0,kernelType.c_str());
+	this->ui.yMsgText->setText(tr(str));
 #ifdef DEBUG_UI
 	cout<<"\tfacePath = "<<facePath<<" from "<<faceBegin<<" to "<<faceEnd<<endl;
 	cout<<"\tnotfacePath = "<<notfacePath<<" from "<<notfaceBegin<<" to "<<notfaceEnd<<endl;
@@ -254,22 +232,25 @@ void Main::on_pStartTest_clicked()
 	string str;
 	QString qstr = tr("facePath = ");
 	qstr.append(facePath.c_str());
-	qstr.append(";from ");
+	qstr.append("\nfrom ");
 	qstr.append(str.c_str());
 	sStream<<faceBegin;
 	sStream>>str;
 	qstr.append(str.c_str());
 	qstr.append(" to ");
+	sStream.clear();
 	sStream<<faceEnd;
 	sStream>>str;
 	qstr.append(str.c_str());
 	qstr.append("\nnotfacePath = ");
 	qstr.append(notfacePath.c_str());
-	qstr.append(";from ");
+	qstr.append("\nfrom ");
+	sStream.clear();
 	sStream<<notfaceBegin;
 	sStream>>str;
 	qstr.append(str.c_str());
 	qstr.append(" to ");
+	sStream.clear();
 	sStream<<notfaceEnd;
 	sStream>>str;
 	qstr.append(str.c_str());
@@ -311,28 +292,34 @@ void Main::on_pStartTest_clicked()
 	}
 	qstr.clear();
 	qstr.append("totalFaceNum = ");
+	sStream.clear();
 	sStream<<(faceEnd - faceBegin +1);
 	sStream>>str;
 	qstr.append(str.c_str());
 	qstr.append("\nCorrectJudgeFace = ");
+	sStream.clear();
 	sStream<<truePos;
 	sStream>>str;
 	qstr.append(str.c_str());
 	qstr.append("\nErrorJudgeFace = ");
+	sStream.clear();
 	sStream<<falsePos;
 	sStream>>str;
 	qstr.append(str.c_str());
 	
 	
-	qstr.append("totalnotfaceNum = ");
+	qstr.append("\ntotalnotfaceNum = ");
+	sStream.clear();
 	sStream<<(notfaceEnd - notfaceBegin +1);
 	sStream>>str;
 	qstr.append(str.c_str());
 	qstr.append("\nCorrectJudgeNotface = ");
+	sStream.clear();
 	sStream<<trueNeg;
 	sStream>>str;
 	qstr.append(str.c_str());
 	qstr.append("\nErrorJudgeNotface = ");
+	sStream.clear();
 	sStream<<falseNeg;
 	sStream>>str;
 	qstr.append(str.c_str());
