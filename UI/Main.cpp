@@ -32,8 +32,6 @@
 using namespace std;
 using namespace cv;
 
-#define DEBUG_UI
-
 Main::Main(QMainWindow *mainView ):QMainWindow(mainView)
 {
 	this->ui.setupUi(this);
