@@ -156,7 +156,7 @@ bool PCASVM::isFace(Mat faceImg)
 #endif//DEBUG
 		resize(t,t,Size(this->normalCols,this->normalRows));
 #ifdef DEBUG
-		cout<<"to"<<t.cols<<" X "<<t.rows<<endl;
+		cout<<" to "<<t.cols<<" X "<<t.rows<<endl;
 #endif//DEBUG
 	}
 	t = t.reshape(1,1);

@@ -160,7 +160,7 @@ void Main::on_pStartTrain_clicked()
 	{
 		facePath.append("/");
 	}
-	if(notfacePath.find_last_of('/') != notfacePath.length())
+	if(notfacePath.find_last_of('/') != notfacePath.length() - 1)
 	{
 		notfacePath.append("/");
 	}
@@ -547,11 +547,11 @@ void Main::on_cStartBtn_clicked()
 		QMessageBox::information(this, tr("Error"), tr("Please choice notface directory !")); 
 		return ;
 	}
-	if(faceDir.find_last_of("/") != faceDir.length())
+	if(faceDir.find_last_of("/") != faceDir.length() - 1)
 	{
 		faceDir += "/";
 	}
-	if(notfaceDir.find_last_of("/") != notfaceDir.length())
+	if(notfaceDir.find_last_of("/") != notfaceDir.length() - 1)
 	{
 		notfaceDir += "/";
 	}
