@@ -101,7 +101,6 @@ void Main::on_aStartBtn_clicked()
 		this->ada.detect();
 		this->mat2Label(img,this->ui.aSrcImgLabel);
 		this->mat2Label(this->ada.getDrawnImg(),this->ui.aDstImgLabel);
-		this->mat2Label(this->ada.getDrawnImg(),this->ui.aDstImgLabel);
 	}
 }
 
@@ -695,9 +694,9 @@ void Main::compareDetect(const string& faceDir,const int& faceBegin,const int& f
 void Main::compareAdaBoost(Mat& src,int& cnt)
 {
 		waitKey(10);
-		this->mat2Label(src,this->ui.cSrcImgLabel);
 		this->ada.setImage(src);
 		this->ada.detect();
+		this->mat2Label(src,this->ui.cSrcImgLabel);
 		this->mat2Label(this->ada.getDrawnImg(),this->ui.cDstImgLabel);
 		if(this->ada.hasFace())
 		{
