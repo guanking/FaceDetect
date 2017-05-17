@@ -220,7 +220,7 @@ void Main::on_pStartTest_clicked()
 	{
 		facePath.append("/");
 	}
-	if(notfacePath.find_last_of('/') != notfacePath.length())
+	if(notfacePath.find_last_of('/') != notfacePath.length() - 1)
 	{
 		notfacePath.append("/");
 	}
@@ -268,6 +268,17 @@ void Main::on_pStartTest_clicked()
 	{
 		sprintf(fileName,"%s%d.png",facePath.c_str(),i);
 		tImg = imread(fileName,IMREAD_GRAYSCALE);
+		if(tImg.empty())
+		{
+			sprintf(fileName,"%s%d.jpg",facePath.c_str(),i);
+			tImg = imread(fileName,IMREAD_GRAYSCALE);
+		}
+		if(tImg.empty())
+		{
+			QMessageBox::information(this, tr("Image Empty"), tr(fileName));  
+			return;
+		}
+
 		if(this->ps->isFace(tImg))
 		{
 			truePos++;
@@ -281,6 +292,17 @@ void Main::on_pStartTest_clicked()
 	{
 		sprintf(fileName,"%s%d.png",notfacePath.c_str(),i);
 		tImg = imread(fileName,IMREAD_GRAYSCALE);
+		if(tImg.empty())
+		{
+			sprintf(fileName,"%s%d.jpg",facePath.c_str(),i);
+			tImg = imread(fileName,IMREAD_GRAYSCALE);
+		}
+		if(tImg.empty())
+		{
+			QMessageBox::information(this, tr("Image Empty"), tr(fileName));  
+			return;
+		}
+
 		if(this->ps->isFace(tImg))
 		{
 			falseNeg++;
