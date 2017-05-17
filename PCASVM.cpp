@@ -142,9 +142,23 @@ PCASVM::~PCASVM()
 	//delete this->svm;
 }
 
-bool PCASVM::isFace(Mat faceImg)//gray image
+bool PCASVM::isFace(Mat faceImg)
 {
 	Mat t = faceImg.clone();
+	if(t.channels() != 1)
+	{
+		cvtColor(t, t, COLOR_BGR2GRAY);
+	}
+	if(t.cols != this->normalCols || t.rows != this->normalRows)
+	{
+#ifdef DEBUG
+		cout<<"resize "<<t.cols<<" X "<<t.rows;
+#endif//DEBUG
+		resize(t,t,Size(this->normalCols,this->normalRows));
+#ifdef DEBUG
+		cout<<"to"<<t.cols<<" X "<<t.rows<<endl;
+#endif//DEBUG
+	}
 	t = t.reshape(1,1);
 	t = this->pca->project(t);
 	return this->svm->predict(t);
