@@ -11,18 +11,18 @@
 using namespace std;
 using namespace cv;
 
-Adaboost::Adaboost()
+Adaboost::Adaboost():changeSrc(false)
 {
 	this->init();
 }
 
-Adaboost::Adaboost(string path)
+Adaboost::Adaboost(string path):changeSrc(false)
 {
 	this->init();
 	this->image = imread(path);
 }
 
-Adaboost::Adaboost(Mat image)
+Adaboost::Adaboost(Mat image):changeSrc(false)
 {
 	this->init();
 	this->image = image.clone();
@@ -40,7 +40,6 @@ Mat Adaboost::getImage()
 
 void Adaboost::setImage(Mat image)
 {
-	this->init();
 	this->image = image.clone();
 }
 
@@ -62,6 +61,9 @@ bool Adaboost::getChangeSrcImage()
 Mat Adaboost::getDrawnImg()
 {
 	Mat tImg = this->image.clone();
+#ifdef DEBUG
+	imshow("Before Drawing",tImg);
+#endif//DEBUG
 	if(tImg.rows < 100 && tImg.cols < 100)
 	{
 		resize( tImg, tImg, Size(100,100), 0, 0, INTER_LINEAR );
@@ -93,7 +95,10 @@ void Adaboost::detect()
 		return;
 	}
 	Mat grayImage;
-	cvtColor(this->image, grayImage,COLOR_RGB2GRAY);
+	cvtColor(this->image, grayImage,COLOR_BGR2GRAY);
+#ifdef DEBUG
+	imshow("gray image",grayImage);
+#endif//DEBUG
 	if(grayImage.rows < 100 && grayImage.cols < 100)
 	{
 #ifdef DEBUG
@@ -119,7 +124,6 @@ void Adaboost::detect()
 void Adaboost::init()
 {
 	this->cascade.load("./cascade/haarcascade_frontalface_alt.xml");
-	this->changeSrc = false;
 	while(!rects.empty())
 	{
 		rects.pop_back();
