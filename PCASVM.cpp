@@ -36,11 +36,11 @@ void PCASVM::initFlatImagesAndLabels()
 		sprintf(fileName,"%s%d.png",this->facePath.c_str(),i);
 		imgs.push_back(imread(fileName,IMREAD_GRAYSCALE));
 	}
-	for(int i =  this->notfaceBegin;i <= this->notfaceEnd; i++)
-	{
-		sprintf(fileName,"%s%d.png",this->notfacePath.c_str(),i);
-		imgs.push_back(imread(fileName,IMREAD_GRAYSCALE));
-	}
+	//for(int i =  this->notfaceBegin;i <= this->notfaceEnd; i++)
+	//{
+	//	sprintf(fileName,"%s%d.png",this->notfacePath.c_str(),i);
+	//	imgs.push_back(imread(fileName,IMREAD_GRAYSCALE));
+	//}
 #ifdef DEBUG
 	cout<<"Image Total Num = "<<imgs.size()<<endl;
 #endif
@@ -63,7 +63,7 @@ void PCASVM::initFlatImagesAndLabels()
 	}
 
 	//init label
-	this->trainLabels = Mat(imgs.size(),1,CV_32SC1);
+	this->trainLabels = Mat(this->faceEnd - this->faceBegin + this->notfaceEnd - this->notfaceBegin + 2,1,CV_32SC1);
 	int  cur = 0;
 	for(int i = this->faceBegin;i <= this->faceEnd;i++)
 	{
@@ -97,13 +97,23 @@ void PCASVM::initPCA()
 	cout<<"\teigenvectors : "<<this->pca->eigenvectors.rows<<" X "<<this->pca->eigenvectors.cols<<endl;
 	cout<<"\teigenvalues : "<<this->pca->eigenvalues.rows<<" X "<<this->pca->eigenvalues.cols<<endl;
 #endif // DEBUG
-	this->trainData = Mat(this->flatImgs.rows,this->pca->eigenvectors.rows,CV_32F);
+	this->trainData = Mat(this->trainLabels.rows,this->pca->eigenvectors.rows,CV_32F);
 	//init trainData
 	Mat tImg;
 	for(int i = 0;i < this->flatImgs.rows;i++)
 	{
 		tImg = this->pca->project(this->flatImgs.row(i));
 		tImg.copyTo(this->trainData.row(i));
+	}
+	char fileName[256];
+	int cur = this->flatImgs.rows;
+	for(int i =  this->notfaceBegin;i <= this->notfaceEnd; i++)
+	{
+		sprintf(fileName,"%s%d.png",this->notfacePath.c_str(),i);
+		tImg = imread(fileName,IMREAD_GRAYSCALE);
+		tImg.reshape(1,1).convertTo(tImg,CV_32F);
+		tImg = this->pca->project(tImg);
+		tImg.copyTo(this->trainData.row(cur++));
 	}
 #ifdef DEBUG
 	cout<<"init pca finished !"<<endl;

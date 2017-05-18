@@ -1363,7 +1363,7 @@ margin-bottom:10px;
       </widget>
       <widget class="QWidget" name="compareTab">
        <attribute name="title">
-        <string>Compare</string>
+        <string>Index</string>
        </attribute>
        <widget class="QTabWidget" name="cNotfaceEndBox">
         <property name="geometry">
