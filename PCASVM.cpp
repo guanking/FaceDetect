@@ -104,6 +104,14 @@ void PCASVM::initPCA()
 	{
 		tImg = this->pca->project(this->flatImgs.row(i));
 		tImg.copyTo(this->trainData.row(i));
+#ifdef DEBUG
+		cout<<i<<"-rows = "<<this->normalRows<<endl;
+		Mat dbgImg = this->pca->backProject(tImg);
+		dbgImg = dbgImg.reshape(1,this->normalRows);
+		normalize(dbgImg,dbgImg,0,255,NORM_MINMAX,CV_8UC1);
+		imshow("PCA-Result",dbgImg);
+		while(char(waitKey(10)) != 'q');
+#endif//DEBUG
 	}
 	char fileName[256];
 	int cur = this->flatImgs.rows;
@@ -169,7 +177,7 @@ bool PCASVM::isFace(Mat faceImg)
 		cout<<" to "<<t.cols<<" X "<<t.rows<<endl;
 #endif//DEBUG
 	}
-	t = t.reshape(1,1);
+	t.reshape(1,1).convertTo(t,CV_32F);
 	t = this->pca->project(t);
 	return this->svm->predict(t);
 }
