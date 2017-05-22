@@ -166,7 +166,7 @@ void Main::on_pStartTrain_clicked()
 	sprintf(str,"Face Path = %s\nfrom %d to %d\nNotfacePath = %s\nfrom %d to %d\n \
 			PCA component is %.2lf%%\nSVM kernel type is %s\n",
 			facePath.c_str(),faceBegin,faceEnd,notfacePath.c_str(),notfaceBegin,notfaceEnd,
-			pcaPercent/100.0,kernelType.c_str());
+			pcaPercent/1.0,kernelType.c_str());
 	this->ui.yMsgText->setText(tr(str));
 #ifdef DEBUG_UI
 	cout<<"\tfacePath = "<<facePath<<" from "<<faceBegin<<" to "<<faceEnd<<endl;
