@@ -1,0 +1,1898 @@
+#ifndef PCASVM_H
+#define PCASVM_H
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
+#include "opencv2/imgcodecs.hpp"
+#include <opencv2/highgui.hpp>
+#include <opencv2/ml.hpp>
+#include<string>
+using namespace std;
+using namespace cv;
+using namespace cv::ml;
+
+class PCASVM
+{
+public:
+	/**
+	 *@param facePath 人脸文件路径
+	 *@param faceBegin 人脸图片开始序号
+	 *@param faceEnd 人脸图片结束序号
+	 *@param notfacePath 非人脸文件路径
+	 *@param notfaceBegin 非人脸图片开始序号
+	 *@param norfaceEnd 非人脸图片结束序号
+	 */
+	PCASVM(string facePath,int faceBegin,int faceEnd,string notfacePath,int notfaceBegin,int notfaceEnd);
+	/**
+	 *析构函数
+	 */
+	virtual ~PCASVM();
+	/**
+	 *设置成分百分比
+	 */
+	void setCptPercent(const double& percent);
+	/**
+	 *设置SVM使用的核函数
+	 */
+	void setSVMKernelType(const int & kernelType);
+	/**
+	 *初始化PCA和SVM
+	 */
+	void init();
+	/**
+	 *使用PCA对图片进行成分提取，用训练好的SVM进行检测
+	 *该图片是否为人脸
+	 *@param faceImg 待检测的图片
+	 */
+	bool isFace(Mat faceImg);
+	/**
+	 *和isFace（Mat）功能一样
+	 *@param facePath 待检测的图片的路径
+	 */
+	bool isFace(string facePath);
+protected:
+	/**
+	 *读取人脸和非人脸图像，并对图像进行扁平化处理
+	 *生成每个图像对应的标签
+	 */
+	void initFlatImagesAndLabels();
+	/**
+	 *使用PCA对扁平化后的图像数据进行主成分提取，生成SVM所需的训练数据
+	 */
+	void initPCA();
+	/**
+	 *主成分提取完成之后使用生成的数据惊醒SVM 训练
+	 */
+	void initSVM();
+private:
+	string facePath,notfacePath;
+	int faceBegin,notfaceBegin,faceEnd,notfaceEnd;
+	/**
+	 *成分百分比
+	 */
+	double cptPercent;
+	/**
+	 *SVM核函数类型
+	 */
+	int SVMKernelType;
+	Ptr<PCA> pca;
+	Ptr<SVM> svm;
+	/**
+	 *扁平化后的图像数据
+	 */
+	Mat flatImgs;
+	/**
+	 *使用PCA提取后的训练数据
+	 */
+	Mat trainData;
+	/**
+	 *每个图像的标签（标识是否为人脸）
+	 */
+	Mat trainLabels;
+	/**
+	 *训练所使用图片的尺寸
+	 */
+	int normalCols;
+	int normalRows;
+};
+
+#endif // PCASVM_H
+#include "PCASVM.h"
+
+PCASVM::PCASVM(string facePath,int faceBegin,int faceEnd,string notfacePath,int notfaceBegin,int notfaceEnd)
+{
+	this->facePath = facePath;
+	this->faceBegin = faceBegin;
+	this->faceEnd  = faceEnd;
+	this->notfacePath = notfacePath;
+	this->notfaceBegin = notfaceBegin;
+	this->notfaceEnd = notfaceEnd;
+#ifdef DEBUG
+	cout<<"FacePath = "<<this->facePath<<endl;
+	cout<<"FaceBegin = "<<this->faceBegin<<endl;
+	cout<<"FaceEnd = "<<this->faceEnd<<endl;
+	cout<<"NotfacePath = "<<this->notfacePath<<endl;
+	cout<<"NotfaceBegin = "<<this->notfaceBegin<<endl;
+	cout<<"NotfaceEnd = "<<this->notfaceEnd<<endl;
+#endif
+	this->SVMKernelType = SVM::LINEAR;
+	this->cptPercent = 0.95;
+}
+
+void PCASVM::init()
+{
+	this->initFlatImagesAndLabels();
+	this->initPCA();
+	this->initSVM();
+}
+void PCASVM::initFlatImagesAndLabels()
+{
+	char fileName[126];
+	vector<Mat> imgs;
+	//read face images and notface images
+	for(int i =  this->faceBegin;i <= this->faceEnd; i++)
+	{
+		sprintf(fileName,"%s%d.png",this->facePath.c_str(),i);
+		imgs.push_back(imread(fileName,IMREAD_GRAYSCALE));
+	}
+	//for(int i =  this->notfaceBegin;i <= this->notfaceEnd; i++)
+	//{
+	//	sprintf(fileName,"%s%d.png",this->notfacePath.c_str(),i);
+	//	imgs.push_back(imread(fileName,IMREAD_GRAYSCALE));
+	//}
+#ifdef DEBUG
+	cout<<"Image Total Num = "<<imgs.size()<<endl;
+#endif
+	//convert images to flatImages
+	if(imgs.empty()||imgs[0].empty())
+	{
+		cout<<"The image-path has no faces"<<endl;
+		exit(0);
+	}
+	this->flatImgs = Mat(imgs.size(),imgs[0].cols*imgs[0].rows,CV_32F);
+	this->normalCols = imgs[0].cols;
+	this->normalRows = imgs[0].rows;
+#ifdef DEBUG
+	cout<<"Each image : \n\twidth = "<<this->normalRows<<" ,height = "<<this->normalCols<<endl;
+	cout<<"\ttotal piexls = "<<this->normalRows*this->normalCols<<endl;
+#endif
+	for(size_t i = 0;i < imgs.size();i++)
+	{
+		imgs[i].reshape(1,1).convertTo(this->flatImgs.row(i),CV_32F);
+	}
+
+	//init label
+	this->trainLabels = Mat(this->faceEnd - this->faceBegin + this->notfaceEnd - this->notfaceBegin + 2,1,CV_32SC1);
+	int  cur = 0;
+	for(int i = this->faceBegin;i <= this->faceEnd;i++)
+	{
+		this->trainLabels.at<int>(cur,0) = 1;
+		cur++;
+	}
+	for(int i = this->notfaceBegin;i <= this->notfaceEnd;i++)
+	{
+		this->trainLabels.at<int>(cur,0) = 0;
+		cur++;
+	}
+#ifdef DEBUG
+	cout<<"Image label values:"<<endl;
+	for(int i = 0;i < this->trainLabels.rows;i++)
+	{
+		printf("\t%05d %s face\n",i,this->trainLabels.at<int>(i,0) == 1?"is":"isn't");
+	}
+#endif
+}
+
+void PCASVM::initPCA()
+{
+#ifdef DEBUG
+	cout<<"init pca..."<<endl;
+	cout<<"Use flat images : "<<this->flatImgs.rows<<" X "<<this->flatImgs.cols<<endl;
+#endif // DEBUG
+	this->pca = new PCA(this->flatImgs, cv::Mat(), PCA::DATA_AS_ROW, this->cptPercent);
+#ifdef DEBUG
+	cout<<"Pca status:"<<endl;
+	cout<<"\tpca percent : "<<this->cptPercent<<endl;
+	cout<<"\teigenvectors : "<<this->pca->eigenvectors.rows<<" X "<<this->pca->eigenvectors.cols<<endl;
+	cout<<"\teigenvalues : "<<this->pca->eigenvalues.rows<<" X "<<this->pca->eigenvalues.cols<<endl;
+#endif // DEBUG
+	this->trainData = Mat(this->trainLabels.rows,this->pca->eigenvectors.rows,CV_32F);
+	//init trainData
+	Mat tImg;
+	for(int i = 0;i < this->flatImgs.rows;i++)
+	{
+		tImg = this->pca->project(this->flatImgs.row(i));
+		tImg.copyTo(this->trainData.row(i));
+#ifdef DEBUG
+		cout<<i<<"-rows = "<<this->normalRows<<endl;
+		Mat dbgImg = this->pca->backProject(tImg);
+		dbgImg = dbgImg.reshape(1,this->normalRows);
+		normalize(dbgImg,dbgImg,0,255,NORM_MINMAX,CV_8UC1);
+		imshow("PCA-Result",dbgImg);
+		while(char(waitKey(10)) != 'q');
+#endif//DEBUG
+	}
+	char fileName[256];
+	int cur = this->flatImgs.rows;
+	for(int i =  this->notfaceBegin;i <= this->notfaceEnd; i++)
+	{
+		sprintf(fileName,"%s%d.png",this->notfacePath.c_str(),i);
+		tImg = imread(fileName,IMREAD_GRAYSCALE);
+		tImg.reshape(1,1).convertTo(tImg,CV_32F);
+		tImg = this->pca->project(tImg);
+		tImg.copyTo(this->trainData.row(cur++));
+	}
+#ifdef DEBUG
+	cout<<"init pca finished !"<<endl;
+#endif // DEBUG
+}
+
+void PCASVM::initSVM()
+{
+#ifdef DEBUG
+	cout<<"training data using SVM...... "<<endl;
+	cout<<"SVM KernelType : "<<this->SVMKernelType<<endl;
+#endif // DEBUG
+	this->svm = SVM::create();
+	this->svm->setType(SVM::C_SVC);
+	this->svm->setKernel(this->SVMKernelType);
+	this->svm->setTermCriteria(TermCriteria(TermCriteria::MAX_ITER, 100, 1e-6));
+	this->svm->train(this->trainData, ROW_SAMPLE, this->trainLabels);
+#ifdef DEBUG
+	cout<<"training data using SVM finished !"<<endl;
+#endif // DEBUG
+}
+
+void PCASVM::setCptPercent(const double& percent)
+{
+	this->cptPercent = percent;
+}
+
+void PCASVM::setSVMKernelType(const int& kernelType)
+{
+	this->SVMKernelType = kernelType;
+}
+
+PCASVM::~PCASVM()
+{
+	//delete this->pca;
+	//delete this->svm;
+}
+
+bool PCASVM::isFace(Mat faceImg)
+{
+	Mat t = faceImg.clone();
+	if(t.channels() != 1)
+	{
+		cvtColor(t, t, COLOR_BGR2GRAY);
+	}
+	if(t.cols != this->normalCols || t.rows != this->normalRows)
+	{
+#ifdef DEBUG
+		cout<<"resize "<<t.cols<<" X "<<t.rows;
+#endif//DEBUG
+		resize(t,t,Size(this->normalCols,this->normalRows));
+#ifdef DEBUG
+		cout<<" to "<<t.cols<<" X "<<t.rows<<endl;
+#endif//DEBUG
+	}
+	t.reshape(1,1).convertTo(t,CV_32F);
+	t = this->pca->project(t);
+	return this->svm->predict(t);
+}
+
+bool PCASVM::isFace(string facePath)
+{
+#ifdef DEBUG
+	cout<<"detect "<<facePath<<"......"<<endl;
+#endif // DEBUG
+	Mat img = imread(facePath.c_str(),IMREAD_GRAYSCALE);
+	return this->isFace(img);
+}
+
+
+#ifndef ADABOOST_H
+#define ADABOOST_H
+#include<iostream>
+#include<string>
+#include<string.h>
+#include <opencv2/objdetect.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
+#include<vector>
+using namespace std;
+using namespace cv;
+
+/**
+功能：使用Adaboost算法进行人脸检测
+流程：设置图片，设置分类器，检测，判断是否检测到
+*/
+class Adaboost
+{
+private:
+	/**
+	检测所使用的图片
+	*/
+	Mat image;
+	/**
+	存放检测结果
+	*/
+	vector<Rect> rects;
+	/**
+	是否改变原图片
+	*/
+	bool changeSrc ;
+	/**
+	分类器
+	*/
+	CascadeClassifier cascade;
+public:
+	Adaboost();
+	/**
+	使用确定图片初始化
+	@param path 图片路径
+	*/
+	Adaboost(string path);
+	/**
+	使用已有图片初始化
+	@param image 图片路径
+	*/
+	Adaboost(Mat image);
+	/**
+	开始检测
+	*/
+	void detect();
+	/**
+	检测完成之后判断是否有人脸
+	*/
+	bool hasFace();
+	/**
+	获取当前检测使用的图片
+	*/
+	Mat getImage();
+	/**
+	设置当前检测要使用的图片
+	*/
+	void setImage(Mat img);
+	/**
+	设置要使用的分类器
+	*/
+	void setCascade(string path);
+	/**
+	获取检测到的人脸区域
+	*/
+	vector<Rect> getImageRects();
+	/**
+	获取当前所使用的图片的类型
+	*/
+	string imgType();
+	/**
+	显示检测结果
+	*/
+	void show();
+	/**
+	显示信息
+	*/
+	string info();
+	/**
+	设置在检测过程中是否改变原图片
+	*/
+	void setChangeSrcImage(bool change);
+	/**
+	获取在检测过程中是否改变了原图片
+	*/
+	bool getChangeSrcImage();
+	/**
+	获取标记了人脸的图 
+	*/
+	Mat getDrawnImg();
+protected:
+	/**
+	初始化
+	*/
+	void init();
+};
+#endif
+#include"Adaboost.h"
+#include<iostream>
+#include<string>
+#include<string.h>
+#include<opencv2/objdetect.hpp>
+#include<opencv2/highgui.hpp>
+#include<opencv2/imgproc.hpp>
+#include<vector>
+#include<map>
+
+using namespace std;
+using namespace cv;
+
+Adaboost::Adaboost():changeSrc(false)
+{
+	this->init();
+}
+
+Adaboost::Adaboost(string path):changeSrc(false)
+{
+	this->init();
+	this->image = imread(path);
+}
+
+Adaboost::Adaboost(Mat image):changeSrc(false)
+{
+	this->init();
+	this->image = image.clone();
+}
+
+bool Adaboost::hasFace()
+{
+	return !this->rects.empty();
+}
+
+Mat Adaboost::getImage()
+{
+	return this->image;
+}
+
+void Adaboost::setImage(Mat image)
+{
+	this->image = image.clone();
+}
+
+void Adaboost::setChangeSrcImage(bool change)
+{
+	this->changeSrc = change;
+}
+
+vector<Rect> Adaboost::getImageRects()
+{
+	return this->rects;
+}
+
+bool Adaboost::getChangeSrcImage()
+{
+	return this->changeSrc;
+}
+
+Mat Adaboost::getDrawnImg()
+{
+	Mat tImg = this->image.clone();
+#ifdef DEBUG
+	imshow("Before Drawing",tImg);
+#endif//DEBUG
+	if(tImg.rows < 100 && tImg.cols < 100)
+	{
+		resize( tImg, tImg, Size(100,100), 0, 0, INTER_LINEAR );
+	}
+	
+	for(vector<Rect>::iterator ele = this->rects.begin();ele != this->rects.end();ele++)
+	{
+		rectangle(tImg,cvPoint(cvRound(ele->x),cvRound(ele->y)),
+				cvPoint(cvRound(ele->x + ele->width),cvRound(ele->y + ele->height)),
+				Scalar(255,128,0),3,8,0);
+	}
+#ifdef DEBUG
+	imshow("Adaboost getDrawnImg",tImg);
+	while(char(waitKey(10)) != 'q');
+#endif//DEBUG
+	return tImg;
+}
+
+void Adaboost::setCascade(string path)
+{
+	this->cascade.load(path);
+}
+
+void Adaboost::detect()
+{
+	this->rects.clear();
+	if(this->image.empty())
+	{
+		return;
+	}
+	Mat grayImage;
+	cvtColor(this->image, grayImage,COLOR_BGR2GRAY);
+#ifdef DEBUG
+	imshow("gray image",grayImage);
+#endif//DEBUG
+	if(grayImage.rows < 100 && grayImage.cols < 100)
+	{
+#ifdef DEBUG
+		cout<<"Image is too small to detect ! Resize it to 100X100 !"<<endl;
+#endif//DEBUG
+		resize( grayImage, grayImage, Size(100,100), 0, 0, INTER_LINEAR );
+	}
+	equalizeHist(grayImage, grayImage);
+	cascade.detectMultiScale( grayImage, this->rects);//,1.1, 2, 0|CASCADE_SCALE_IMAGE,Size(50, 50) );
+#ifdef DEBUG
+	cout<<"\nAdaboost face areas:"<<endl;
+	for(vector<Rect>::iterator ele = this->rects.begin(); ele != this->rects.end();ele++)
+	{
+		cout<<"\t"<<*ele<<endl;
+	}
+#endif//DEBUG
+	if(this->changeSrc)
+	{
+		this->image = grayImage;
+	}
+}
+
+void Adaboost::init()
+{
+	this->cascade.load("./cascade/haarcascade_frontalface_alt.xml");
+	while(!rects.empty())
+	{
+		rects.pop_back();
+	}
+}
+
+void Adaboost::show()
+{
+	for ( size_t i = 0; i < this->rects.size(); i++ )
+	{
+		Rect r = this->rects[i];
+		rectangle( this->image, cvPoint(cvRound(r.x), cvRound(r.y)),
+			cvPoint(cvRound(r.x + r.width-1), cvRound(r.y + r.height)),
+			 Scalar(255,128,0), 3, 8, 0);
+	}
+	imshow( "image", this->image );
+	char c = 'q';
+	do
+	{
+		c = (char)waitKey(10);
+	}
+	while(c != 'q' && c != 'Q' );
+}
+
+string Adaboost::info()
+{
+	string str="";
+	cout<<"Image info:"<<endl;
+	cout<<"\twidth = "<<this->image.size().width<<endl;
+	cout<<"\theight = "<<this->image.size().height<<endl;
+	cout<<"\tchannels = "<<this->image.channels()<<endl;
+	cout<<"\ttype = "<<this->imgType()<<endl;
+	return str;
+}
+
+string Adaboost::imgType()
+{
+	map<int,string> typeMaps;
+	typeMaps[ CV_8UC1 ]="CV_8UC1";
+	typeMaps[ CV_8UC2 ]="CV_8UC2";
+	typeMaps[ CV_8UC3 ]="CV_8UC3";
+	typeMaps[ CV_8UC4 ]="CV_8UC4";
+
+	typeMaps[ CV_8SC1 ]="CV_8SC1";
+	typeMaps[ CV_8SC2 ]="CV_8SC2";
+	typeMaps[ CV_8SC3 ]="CV_8SC3";
+	typeMaps[ CV_8SC4 ]="CV_8SC4";
+
+	typeMaps[ CV_16UC1 ]="CV_16UC1";
+	typeMaps[ CV_16UC2 ]="CV_16UC2";
+	typeMaps[ CV_16UC3 ]="CV_16UC3";
+	typeMaps[ CV_16UC4 ]="CV_16UC4";
+
+	typeMaps[ CV_16SC1 ]="CV_16SC1";
+	typeMaps[ CV_16SC2 ]="CV_16SC2";
+	typeMaps[ CV_16SC3 ]="CV_16SC3";
+	typeMaps[ CV_16SC4 ]="CV_16SC4";
+
+	typeMaps[ CV_32SC1 ]="CV_32SC1";
+	typeMaps[ CV_32SC2 ]="CV_32SC2";
+	typeMaps[ CV_32SC3 ]="CV_32SC3";
+	typeMaps[ CV_32SC4 ]="CV_32SC4";
+
+	typeMaps[ CV_32FC1 ]="CV_32FC1";
+	typeMaps[ CV_32FC2 ]="CV_32FC2";
+	typeMaps[ CV_32FC3 ]="CV_32FC3";
+	typeMaps[ CV_32FC4 ]="CV_32FC4";
+
+	typeMaps[ CV_64FC1 ]="CV_64FC1";
+	typeMaps[ CV_64FC2 ]="CV_64FC2";
+	typeMaps[ CV_64FC3 ]="CV_64FC3";
+	typeMaps[ CV_64FC4 ]="CV_64FC4";
+	if(typeMaps.find(this->image.type())!=typeMaps.end())
+	{
+		return typeMaps[this->image.type()];
+	}
+	else
+	{
+		return "Unknow Type !";
+	}
+}
+#ifndef YCBCR_H
+#define YCBCR_H
+#include<iostream>
+#include<list>
+#include<vector>
+#include<queue>
+#include<string>
+#include<opencv2/core/core.hpp>
+#include<opencv2/features2d/features2d.hpp>
+#include<opencv2/highgui/highgui.hpp>
+#include<opencv2/imgproc/imgproc.hpp>
+#include<opencv2/calib3d/calib3d.hpp>
+using namespace std;
+using namespace cv;
+
+#define MAX_PIXEL_VALUE 255
+#define MIN_PIXEL_VALUE 0
+#define VISIT 255
+#define UNVISIT 0
+#define LEGAL_SUB_HOLE_NUM 3
+class YCbCr
+{
+private:
+	/**
+	待检测的图片
+	*/
+	Mat img;
+	/**
+	处理过程的缓存图片
+	*/
+	Mat resultImg;
+	/**
+	检测到的人脸区域集合
+	*/
+	list<Rect> faceAreas;
+	/**
+	形态学处理时是否使用“开”处理
+	*/
+	bool useMorphOpen;
+	/**
+	广度优先遍历算法实现对图片区域的选取（使用八连通区域）
+	@param area 遍历使用的图像
+	@param vis 标记图像中的点是否被访问过
+	@param value 要标记的连通区域的值
+	@param x 起始点X轴坐标
+	@param y 起始点Y轴坐标
+	*/
+	Rect bfs(const Mat area,Mat vis,const int& value,const int& x = 0,const int& y = 0);
+	/**
+	形态学开处理
+	*/
+	void morphOpen();
+	/**
+	形态学闭处理
+	*/
+	void morphClose();
+public:
+	/**
+	使用图片所在路径初始化
+	*/
+	YCbCr(string path);
+	/**
+	使用指定的检测图片初始化
+	*/
+	YCbCr(Mat img);
+	/**
+	析构函数
+	*/
+	~YCbCr();
+	/**
+	参数初始化
+	*/
+	void init();
+	/**
+	重置检测使用的图像
+	*/
+	void setImg(const Mat img);
+	/**
+	设置是否使用形态学“开”处理
+	@param useMorphOpen 为true表示使用开处理，false表示使用闭处理
+	*/
+	void setUseMorphOpen(bool useMorphOpen);
+	/**
+	返回是否使用开处理
+	*/
+	bool isUseOpen();
+	/**
+	detect之后判断是否有人脸
+	*/
+	bool isFace();
+	/**
+	获取检测得到的人脸区域集合
+	*/
+	list<Rect> getFaceAreas();
+	/**
+	获取标记了人脸的图片
+	*/
+	Mat getDrawnImg();
+	/**
+	 *获取处理过程中的图像
+	 */
+	const Mat getCacheImg();
+	/**
+	肤色检测
+	*/
+	void initOrdinarySkin();
+	/**
+	形态学处理
+	*/
+	void morph();
+	/**
+	在肤色检测完成的基础上进行区域划分，检测出所有的人脸候选区域
+	*/
+	void splitArea();
+	/**
+	根据子区域的个数（人脸中会有鼻子眼睛形成的黑色区域）和宽高比筛选合法的人脸区域
+	*/
+	void selectLegal();
+	/**
+	人脸检测，按顺序进行肤色检测、形态学处理、区域筛选
+	*/
+	void detect();
+};
+#endif//YCBCR_H
+#include"YCbCr.h"
+
+YCbCr::YCbCr(string path)
+{
+	this->img = imread(path.c_str());
+	this->useMorphOpen = true;
+}
+
+YCbCr::YCbCr(Mat img)
+{
+	this->img = img.clone();
+	this->useMorphOpen = true;
+}
+
+YCbCr::~YCbCr()
+{
+}
+
+void YCbCr::setUseMorphOpen(bool useMorphOpen)
+{
+	this->useMorphOpen = useMorphOpen;
+}
+
+void YCbCr::setImg(const Mat img)
+{
+	this->img = img.clone();
+}
+
+bool YCbCr::isUseOpen()
+{
+	return this->useMorphOpen;
+}
+
+list<Rect> YCbCr::getFaceAreas()
+{
+	return this->faceAreas;
+}
+
+bool YCbCr::isFace()
+{
+	return !this->faceAreas.empty();
+}
+
+void YCbCr::init()
+{
+	if(this->img.empty())
+	{
+		cout<<"Image is empty(In YCbCr face detect)!"<<endl;
+		exit(0);
+	}
+	this->faceAreas.clear();
+}
+
+void YCbCr::detect()
+{
+	this->initOrdinarySkin();
+	this->morph();
+	this->splitArea();
+	this->selectLegal();
+}
+
+void YCbCr::initOrdinarySkin()
+{
+	Mat tImg;
+	this->resultImg = Mat(this->img.rows,this->img.cols,CV_8UC1);
+	cvtColor(this->img,tImg,CV_BGR2YCrCb);
+	vector<Mat> channels;
+	split(tImg,channels);
+	Mat Cr = channels[1];
+	Mat Cb = channels[2];
+	for(int i = 0;i < Cr.rows;i++)
+	{
+		const uchar* curCr = Cr.ptr<uchar>(i);
+		const uchar* curCb = Cb.ptr<uchar>(i);
+		uchar* curR = this->resultImg.ptr<uchar>(i);
+		for(int  j = 0;j < Cr.cols;j++)
+		{
+			if(curCr[j] > 137 && curCr[j] < 175 && curCb[j] > 100 && curCb[j] < 118)
+			{
+				curR[j] = MAX_PIXEL_VALUE;
+			}
+			else
+			{
+				curR[j] = MIN_PIXEL_VALUE;
+			}
+		}
+	}
+#ifdef DEBUG
+	imshow("OrdinaryResult",this->resultImg);
+	while(char(waitKey(10)) != 'q');
+#endif//DEBUG
+}
+
+void YCbCr::morphOpen()
+{
+	erode(this->resultImg,this->resultImg,Mat(),Point(-1,-1),2);
+	dilate(this->resultImg,this->resultImg,Mat(),Point(-1,-1),2);
+}
+
+void YCbCr::morphClose()
+{
+	dilate(this->resultImg,this->resultImg,Mat(),Point(-1,-1),2);
+	erode(this->resultImg,this->resultImg,Mat(),Point(-1,-1),2);
+}
+
+void YCbCr::splitArea()
+{
+	this->faceAreas.clear();
+	Mat vis(this->resultImg.rows,this->resultImg.cols,CV_8UC1);
+	vis = UNVISIT;
+	for(int i = 0; i < this->resultImg.rows;i++)
+	{
+		const uchar* curR = this->resultImg.ptr<uchar>(i);
+		const uchar* curV = vis.ptr<uchar>(i);
+		for(int j = 0;j < this->resultImg.cols; j++)
+		{
+			if(curR[j] == MAX_PIXEL_VALUE && curV[j] == UNVISIT)
+			{
+				this->faceAreas.push_back(bfs(this->resultImg,vis,MAX_PIXEL_VALUE,j,i));
+#ifdef DEBUG
+				imshow("SplitArea",vis);
+				while(char(waitKey(10)) != 'q');
+#endif//DEBUG
+			}
+		}
+	}
+#ifdef DEBUG
+	cout<<"\nGet faceAreas,size = "<<this->faceAreas.size()<<endl;
+	for(list<Rect>::iterator ele = this->faceAreas.begin();ele != this->faceAreas.end();ele++)
+	{
+		cout<<*ele<<endl;
+	}
+#endif//DEBUG
+}
+
+void YCbCr::selectLegal()
+{
+#ifdef DEBUG
+	cout<<"\nBefore selectLegal, size = "<<this->faceAreas.size()<<endl;
+#endif//DEBUG
+	for(list<Rect>::iterator ele = this->faceAreas.begin();ele != this->faceAreas.end();)
+	{
+		double rate = double(ele->width)/ele->height;
+		if(rate < 0.5 || rate > 1.2)
+		{
+#ifdef DEBUG
+			list<Rect>::iterator tele = ele;
+#endif//DEBUG
+			this->faceAreas.erase(ele++);
+#ifdef DEBUG
+			cout<<"\tIllegal rate("<<rate<<"),delete "<<*tele<<endl;
+#endif//DEBUG
+		}
+		else
+		{
+			ele++;
+		}
+	}
+	for(list<Rect>::iterator ele = this->faceAreas.begin();ele != this->faceAreas.end();)
+	{
+#ifdef DEBUG
+		cout<<"\nFind subhole in "<<*ele<<"..."<<endl;
+#endif//DEBUG
+		int holeNum = 0;
+		Mat vis(this->resultImg.rows,this->resultImg.cols,CV_8UC1);
+		vis = UNVISIT;
+		for(int i = 0; i < ele->width;i++)
+		{
+			for(int j = 0;j < ele->height;j++)
+			{
+				int x = ele->x + i;
+				int y = ele->y + j;
+				if(vis.at<uchar>(y,x) == UNVISIT && this->resultImg.at<uchar>(y,x) == MIN_PIXEL_VALUE)
+				{
+					this->bfs(this->resultImg,vis,MIN_PIXEL_VALUE,x,y);
+					holeNum++;
+				}
+				if(holeNum == LEGAL_SUB_HOLE_NUM)
+				{
+					break;
+				}
+			}
+			if(holeNum == LEGAL_SUB_HOLE_NUM)
+			{
+				break;
+			}
+		}
+		if(holeNum != LEGAL_SUB_HOLE_NUM)
+		{
+#ifdef DEBUG
+			cout<<"\tIllegal holeNum = "<<holeNum;
+			cout<<" delete faceArea "<<*ele<<endl;
+#endif//DEBUG
+			this->faceAreas.erase(ele++);
+		}
+		else
+		{
+			ele++;
+		}
+	}
+#ifdef DEBUG
+	cout<<"\nafter selectLegal size = "<<this->faceAreas.size()<<endl;
+	for(list<Rect>::iterator ele = this->faceAreas.begin();ele != this->faceAreas.end();ele++)
+	{
+		cout<<*ele<<endl;
+	}
+#endif//DEBUG
+}
+
+Rect YCbCr::bfs(const Mat area,Mat vis,const int& value,const int& x,const int& y)
+{
+	Point topLeft(area.cols,area.rows);
+	Point botRight(0,0);
+	const size_t dir = 8;
+	int dx[] = {-1,-1,-1, 0, 0, 1, 1, 1};
+	int dy[] = {-1, 0, 1,-1, 1,-1, 1, 1};
+	Point t(x,y);
+	queue<Point> que;
+	vis.at<uchar>(y,x) = VISIT;
+	que.push(t);
+	while(!que.empty())
+	{
+		Point p = que.front();
+		que.pop();
+		if(p.x < topLeft.x)
+		{
+			topLeft.x = p.x;
+		}
+		if(p.y < topLeft.y)
+		{
+			topLeft.y = p.y;
+		}
+		if(p.x > botRight.x)
+		{
+			botRight.x = p.x;
+		}
+		if(p.y > botRight.y)
+		{
+			botRight.y = p.y;
+		}
+
+		for(size_t i = 0;i < dir;i++)
+		{
+			t.x = p.x + dx[i];
+			t.y = p.y + dy[i];
+			if(t.x >=0 && t.x < area.cols && t.y >= 0 && t.y < area.rows)
+			{
+				if(vis.at<uchar>(t.y,t.x) == UNVISIT && area.at<uchar>(t.y,t.x) == value)
+				{
+					vis.at<uchar>(t.y,t.x) = VISIT;
+					que.push(t);
+				}
+			}
+		}
+	}
+	Rect curArea(topLeft,botRight);
+#ifdef DEBUG
+	cout<<"Find a new Subhole : ";
+	cout<<curArea<<endl;
+#endif//DEBUG
+	return curArea;
+}
+
+void YCbCr::morph()
+{
+	if(this->useMorphOpen)
+	{
+		this->morphOpen();
+	}
+	else
+	{
+		this->morphClose();
+	}
+#ifdef DEBUG
+	imshow("Morph:",this->resultImg);
+	while(char(waitKey(10)) != 'q');
+#endif//DEBUG
+}
+
+Mat YCbCr::getDrawnImg()
+{
+	Mat tImg = this->img.clone();
+	for(list<Rect>::iterator ele = this->faceAreas.begin();ele != this->faceAreas.end();ele++)
+	{
+		rectangle(tImg,cvPoint(cvRound(ele->x),cvRound(ele->y)),
+				cvPoint(cvRound(ele->x + ele->width),cvRound(ele->y + ele->height)),
+				Scalar(255,128,0),3,8,0);
+	}
+#ifdef DEBUG
+	imshow("YCbCr getDrawnImg",tImg);
+	while(char(waitKey(10)) != 'q');
+#endif//DEBUG
+	return tImg;
+}
+
+const Mat YCbCr::getCacheImg()
+{
+	return this->resultImg;
+}
+#ifndef MAIN_H
+#define MAIN_H
+
+#include <Qt3Support/Q3ComboBox>
+#include <Qt3Support/Q3Frame>
+#include <Qt3Support/Q3TextEdit>
+#include <QtCore/QVariant>
+#include <QtGui/QAction>
+#include <QtGui/QApplication>
+#include <QtGui/QButtonGroup>
+#include <QtGui/QGridLayout>
+#include <QtGui/QGroupBox>
+#include <QtGui/QHeaderView>
+#include <QtGui/QLabel>
+#include <QtGui/QLineEdit>
+#include <QtGui/QMainWindow>
+#include <QtGui/QPushButton>
+#include <QtGui/QRadioButton>
+#include <QtGui/QSlider>
+#include <QtGui/QSpinBox>
+#include <QtGui/QSplitter>
+#include <QtGui/QStatusBar>
+#include <QtGui/QTabWidget>
+#include <QtGui/QWidget>
+#include <QtGui/QApplication>
+#include <QtCore/QVariant>
+#include <QtGui/QAction>
+#include <QtGui/QApplication>
+#include <QtGui/QButtonGroup>
+#include <QtGui/QHeaderView>
+#include <QtGui/QLabel>
+#include <QtGui/QMainWindow>
+#include <QtGui/QMenuBar>
+#include <QtGui/QPushButton>
+#include <QtGui/QStatusBar>
+#include <QtGui/QWidget>
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/ml.hpp>
+#include <string>
+#include <map>
+#include "ui_FaceDetactUI.h"
+#include "../Adaboost.h"
+#include "../PCASVM.h"
+#include "../YCbCr.h"
+
+using namespace std;
+using namespace cv;
+
+class Main:public QMainWindow
+{
+	Q_OBJECT
+private:
+	Ui_MainWindow ui;
+	Adaboost ada;
+	PCASVM* ps;
+	YCbCr* fd;
+	map<string,int> SVMKernelTypes;
+	void mat2Label(Mat mat,QLabel* label);
+	void dealYCbCrPro(const Mat& img);
+	void compareDetect(const string& faceDir,const int& faceBegin,const int& faceEnd,const string& notfaceDir,const int& notfaceBegin,const int& notfaceEnd,void (Main::*detectPro)(Mat& src,int& cnt));
+	void compareAdaBoost(Mat& src,int& cnt);
+	void comparePCASVM(Mat& src,int& cnt);
+	void compareYCrCb(Mat& src,int& cnt);
+public:
+	Main(QMainWindow *parent = NULL);
+	~Main();
+public slots:
+	/**
+	 *Adaboost算法对应监听借口实现
+	 */
+	void on_aStartBtn_clicked();
+	void on_aRealtimeRtb_clicked();
+	void on_aFileRtb_clicked();
+	void on_aChoiceFileBtn_clicked();
+
+	/**
+	 *PCASVM算法对应监听接口实现
+	 */
+	void on_pStartTrain_clicked();
+	void on_pStartTest_clicked();
+	void on_pTestFaceChoiceFileBtn_clicked();
+	void on_pTestNotfaceChoiceFileBtn_clicked();
+	void on_pTrainFaceChoiceFileBtn_clicked();
+	void on_pTrainNotfaceChoiceFileBtn_clicked();
+	/**
+	 *YCbCr算法对应监听接口实现
+	 */
+	void on_yStartBtn_clicked();
+	void on_yRealtimeRtb_clicked();
+	void on_yFileRtb_clicked();
+	void on_yChoiceFileBtn_clicked();
+	/**
+	 *算法比较界面接口实现
+	 */
+	void on_cFaceChoiceFileBtn_clicked();
+	void on_cNotfaceChoiceFileBtn_clicked();
+	void on_cStartBtn_clicked();
+	void on_cAdaBoostRtb_clicked();
+	void on_cPCASVMRtb_clicked();
+	void on_cYCrCbRtb_clicked();
+};
+#endif
+#include  <iostream>
+#include <exception>
+#include <sstream>
+#include <QtGui/QFileDialog>
+#include <QtCore/QVariant>
+#include <QtGui/QAction>
+#include <QtGui/QApplication>
+#include <QtGui/QButtonGroup>
+#include <QtGui/QComboBox>
+#include <QtGui/QGridLayout>
+#include <QtGui/QGroupBox>
+#include <QtGui/QHeaderView>
+#include <QtGui/QLabel>
+#include <QtGui/QLineEdit>
+#include <QtGui/QMainWindow>
+#include <QtGui/QPushButton>
+#include <QtGui/QRadioButton>
+#include <QtGui/QSlider>
+#include <QtGui/QSpinBox>
+#include <QtGui/QSplitter>
+#include <QtGui/QStatusBar>
+#include <QtGui/QTabWidget>
+#include <QtGui/QTextEdit>
+#include <QtGui/QWidget>
+#include <QtGui/QMessageBox>
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/videoio.hpp>
+#include "Main.h"
+
+using namespace std;
+using namespace cv;
+
+Main::Main(QMainWindow *mainView ):QMainWindow(mainView)
+{
+	this->ui.setupUi(this);
+	this->ui.retranslateUi(this);
+	this->ps = NULL;
+	this->fd = NULL;
+	this->SVMKernelTypes.insert(pair<string,int>("LINEAR",SVM::LINEAR));
+	this->SVMKernelTypes.insert(pair<string,int>("POLY",SVM::POLY));
+	this->SVMKernelTypes.insert(pair<string,int>("RBF",SVM::RBF));
+	this->SVMKernelTypes.insert(pair<string,int>("SIGMOID",SVM::SIGMOID));
+	this->SVMKernelTypes.insert(pair<string,int>("CHI2",SVM::CHI2));
+	this->SVMKernelTypes.insert(pair<string,int>("INTER",SVM::INTER));
+	for(map<string,int>::iterator ele = this->SVMKernelTypes.begin(); ele != this->SVMKernelTypes.end();ele++)
+	{
+		this->ui.ySVMCmpBox->addItem(QString::fromStdString(ele->first));
+	}
+}
+
+void Main::on_aStartBtn_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_aStartBtn_clicked"<<endl;
+#endif
+	Mat img;
+	if(this->ui.aRealtimeRtb->isChecked())
+	{
+#ifdef DEBUG_UI
+		cout<<"\trealtimeRtb is checked"<<endl;
+#endif
+		VideoCapture cap(0);
+		if(!cap.isOpened())
+		{
+			QMessageBox::information(this, tr("Error"), tr("VideoCapture is not opened !"));  
+			return;
+		}
+		while(this->ui.aRealtimeRtb->isChecked())
+		{
+#ifdef DEBUG_UI
+			cout<<"aRealtimeRtb is checked : "<<this->ui.aRealtimeRtb->isChecked()<<endl;
+#endif//DEBUG_UI
+			cap>>img;
+			this->ada.setImage(img);
+			this->ada.detect();
+			this->mat2Label(img,this->ui.aSrcImgLabel);
+			this->mat2Label(this->ada.getDrawnImg(),this->ui.aDstImgLabel);
+			waitKey(100);
+		}
+		cap.release();
+	}
+	else
+	{
+#ifdef DEBUG_UI
+		cout<<"\tfileRtb is checked"<<endl;
+		cout<<"ImgPath = "<<this->ui.aImgPathText->text().data()<<endl;
+#endif
+		QString qImgPath = this->ui.aImgPathText->text();
+		string imgPath = qImgPath.toStdString();
+		if(imgPath.empty())
+		{
+			QMessageBox::information(this, tr("Error"), tr("Please input image path !"));  
+			return;
+		}
+		img = imread(imgPath.c_str());
+		this->ada.setImage(img);
+		this->ada.detect();
+		this->mat2Label(img,this->ui.aSrcImgLabel);
+		this->mat2Label(this->ada.getDrawnImg(),this->ui.aDstImgLabel);
+	}
+}
+
+
+void Main::on_aRealtimeRtb_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_aRealtimeRtb_clicked"<<endl;
+#endif
+	this->ui.aImgPathText->setEnabled(false);
+	this->ui.aChoiceFileBtn->setEnabled(false);
+}
+
+void Main::on_aFileRtb_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_aFileRtb_clicked"<<endl;
+#endif
+	this->ui.aImgPathText->setEnabled(true);
+	this->ui.aChoiceFileBtn->setEnabled(true);
+}
+
+void Main::on_aChoiceFileBtn_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_aChoiceFileBtn_clicked"<<endl;
+#endif
+	QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"), "./img",  tr("Images (*.png *.xpm *.jpg)"));  
+	this->ui.aImgPathText->setText(fileName);
+	Mat img = imread(fileName.toStdString().c_str());
+	if(img.empty())
+	{
+		QMessageBox::information(this, tr("Error"), tr("The image you have choiced is in a wrong format !"));
+		return;
+	}
+	else
+	{
+		this->mat2Label(img,this->ui.aSrcImgLabel);
+	}
+}
+
+void Main::on_pStartTrain_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_pStartTrain_clicked"<<endl;
+#endif
+	string facePath = this->ui.pTrainFaceImgPathText->text().toStdString();
+	string notfacePath = this->ui.pTrainNotfaceImgPathText->text().toStdString();
+	int faceBegin = this->ui.pTrainFaceBeginBox->value();
+	int faceEnd = this->ui.pTrainFaceEndBox->value();
+	int notfaceBegin = this->ui.pTrainNotfaceBeginBox->value();
+	int notfaceEnd = this->ui.pTrainNotfaceEndBox->value();
+	int pcaPercent = this->ui.pCptRateBox->value();	
+	string kernelType = this->ui.ySVMCmpBox->currentText().toStdString();
+
+	if(facePath.find_last_of('/') != facePath.length() - 1)
+	{
+		facePath.append("/");
+	}
+	if(notfacePath.find_last_of('/') != notfacePath.length() - 1)
+	{
+		notfacePath.append("/");
+	}
+	char str[256];
+	sprintf(str,"Face Path = %s\nfrom %d to %d\nNotfacePath = %s\nfrom %d to %d\n \
+			PCA component is %.2lf%%\nSVM kernel type is %s\n",
+			facePath.c_str(),faceBegin,faceEnd,notfacePath.c_str(),notfaceBegin,notfaceEnd,
+			pcaPercent/1.0,kernelType.c_str());
+	this->ui.yMsgText->setText(tr(str));
+#ifdef DEBUG_UI
+	cout<<"\tfacePath = "<<facePath<<" from "<<faceBegin<<" to "<<faceEnd<<endl;
+	cout<<"\tnotfacePath = "<<notfacePath<<" from "<<notfaceBegin<<" to "<<notfaceEnd<<endl;
+	cout<<"\tPCA component percent is "<<pcaPercent<<"%"<<endl;
+	cout<<"\tSVM kernel type is "<<kernelType<<endl;
+#endif//DEBUG_UI
+	if(this->ps != NULL)
+		delete this->ps;
+	this->ps = new PCASVM(facePath,faceBegin,faceEnd,notfacePath,notfaceBegin,notfaceEnd);
+	if(this->ps == NULL)
+	{
+		QMessageBox::information(this, tr("Error"), tr("Malloc space failed!"));  
+		return;
+	}
+	this->ps->setCptPercent(pcaPercent/100.0);
+	map<string,int>::iterator ele = this->SVMKernelTypes.find(kernelType);
+	if(ele == this->SVMKernelTypes.end())
+	{
+		QMessageBox::information(this, QString::fromStdString(kernelType), tr("Unknow Kernel type !")); 
+		return;
+	}
+	this->ps->setSVMKernelType(ele->second);
+	this->ui.yMsgText->append(tr("training......"));
+	try
+	{
+		this->ps->init();
+	}
+	catch(exception& e)
+	{
+		QMessageBox::information(this, tr("Error"), QString::fromStdString(string(e.what()))); 
+	}
+	this->ui.yMsgText->append(tr("training finished !"));
+}
+
+void Main::on_pStartTest_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_pStartTest_clicked"<<endl;
+#endif
+	string facePath = this->ui.pTestFaceImgPathText->text().toStdString();
+	string notfacePath = this->ui.pTestNotfaceImgPathText->text().toStdString();
+	int faceBegin = this->ui.pTestFaceBeginBox->value();
+	int faceEnd = this->ui.pTestFaceEndBox->value();
+	int notfaceBegin = this->ui.pTestNotfaceBeginBox->value();
+	int notfaceEnd = this->ui.pTestNotfaceEndBox->value();
+
+	if(facePath.find_last_of('/') != facePath.length() - 1)
+	{
+		facePath.append("/");
+	}
+	if(notfacePath.find_last_of('/') != notfacePath.length() - 1)
+	{
+		notfacePath.append("/");
+	}
+#ifdef DEBUG_UI
+	cout<<"\tfacePath = "<<facePath<<" from "<<faceBegin<<" to "<<faceEnd<<endl;
+	cout<<"\tnotfacePath = "<<notfacePath<<" from "<<notfaceBegin<<" to "<<notfaceEnd<<endl;
+#endif//DEBUG_UI
+	stringstream sStream;
+	string str;
+	QString qstr = tr("facePath = ");
+	qstr.append(facePath.c_str());
+	qstr.append("\nfrom ");
+	qstr.append(str.c_str());
+	sStream<<faceBegin;
+	sStream>>str;
+	qstr.append(str.c_str());
+	qstr.append(" to ");
+	sStream.clear();
+	sStream<<faceEnd;
+	sStream>>str;
+	qstr.append(str.c_str());
+	qstr.append("\nnotfacePath = ");
+	qstr.append(notfacePath.c_str());
+	qstr.append("\nfrom ");
+	sStream.clear();
+	sStream<<notfaceBegin;
+	sStream>>str;
+	qstr.append(str.c_str());
+	qstr.append(" to ");
+	sStream.clear();
+	sStream<<notfaceEnd;
+	sStream>>str;
+	qstr.append(str.c_str());
+	this->ui.yMsgText->append(qstr);
+	if(this->ps == NULL)
+	{
+		QMessageBox::information(this, tr("Error"), tr("Please train before test !")); 
+		return;
+	}
+	Mat tImg;
+	char fileName[126];
+	int truePos = 0,falsePos = 0;
+	int trueNeg = 0,falseNeg = 0;
+	for(int i = faceBegin;i <= faceEnd;i++)
+	{
+		sprintf(fileName,"%s%d.png",facePath.c_str(),i);
+		tImg = imread(fileName,IMREAD_GRAYSCALE);
+		if(tImg.empty())
+		{
+			sprintf(fileName,"%s%d.jpg",facePath.c_str(),i);
+			tImg = imread(fileName,IMREAD_GRAYSCALE);
+		}
+		if(tImg.empty())
+		{
+			QMessageBox::information(this, tr("Image Empty"), tr(fileName));  
+			return;
+		}
+
+		if(this->ps->isFace(tImg))
+		{
+			truePos++;
+		}
+		else
+		{
+			falsePos++;
+		}
+	}
+	for(int i = notfaceBegin;i <= notfaceEnd;i++)
+	{
+		sprintf(fileName,"%s%d.png",notfacePath.c_str(),i);
+		tImg = imread(fileName,IMREAD_GRAYSCALE);
+		if(tImg.empty())
+		{
+			sprintf(fileName,"%s%d.jpg",facePath.c_str(),i);
+			tImg = imread(fileName,IMREAD_GRAYSCALE);
+		}
+		if(tImg.empty())
+		{
+			QMessageBox::information(this, tr("Image Empty"), tr(fileName));  
+			return;
+		}
+
+		if(this->ps->isFace(tImg))
+		{
+			falseNeg++;
+		}
+		else
+		{
+			trueNeg++;
+		}
+	}
+	qstr.clear();
+	qstr.append("totalFaceNum = ");
+	sStream.clear();
+	sStream<<(faceEnd - faceBegin +1);
+	sStream>>str;
+	qstr.append(str.c_str());
+	qstr.append("\nCorrectJudgeFace = ");
+	sStream.clear();
+	sStream<<truePos;
+	sStream>>str;
+	qstr.append(str.c_str());
+	qstr.append("\nErrorJudgeFace = ");
+	sStream.clear();
+	sStream<<falsePos;
+	sStream>>str;
+	qstr.append(str.c_str());
+	
+	
+	qstr.append("\ntotalnotfaceNum = ");
+	sStream.clear();
+	sStream<<(notfaceEnd - notfaceBegin +1);
+	sStream>>str;
+	qstr.append(str.c_str());
+	qstr.append("\nCorrectJudgeNotface = ");
+	sStream.clear();
+	sStream<<trueNeg;
+	sStream>>str;
+	qstr.append(str.c_str());
+	qstr.append("\nErrorJudgeNotface = ");
+	sStream.clear();
+	sStream<<falseNeg;
+	sStream>>str;
+	qstr.append(str.c_str());
+	this->ui.yMsgText->append(qstr);
+#ifdef DEBUG_UI
+	cout<<"totalFace = "<<faceEnd - faceBegin + 1<<endl;
+	cout<<"correctJudgeFace = "<<truePos<<endl;
+	cout<<"errorJudgeFace = "<<falsePos<<endl;
+	cout<<"totalNotface = "<<notfaceEnd - notfaceBegin + 1<<endl;
+	cout<<"correctJUdgeNotface = "<<trueNeg<<endl;
+	cout<<"errorJudgeNotface = "<<falseNeg<<endl;
+#endif//DEBUG_UI
+}
+
+void Main::on_pTestFaceChoiceFileBtn_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_pTestFaceChoiceFileBtn_clicked"<<endl;
+#endif
+	QString fileName = QFileDialog::getExistingDirectory(this, tr("Open File"), "./img");  
+	this->ui.pTestFaceImgPathText->setText(fileName);
+	
+}
+
+void Main::on_pTestNotfaceChoiceFileBtn_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_pTestNotFaceChoiceFileBtn_clicked"<<endl;
+#endif
+	QString fileName = QFileDialog::getExistingDirectory(this, tr("Open File"), "./img");  
+	this->ui.pTestNotfaceImgPathText->setText(fileName);
+}
+
+void Main::on_pTrainFaceChoiceFileBtn_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_pTrainFaceChoiceFileBtn_clicked"<<endl;
+#endif
+	QString fileName = QFileDialog::getExistingDirectory(this, tr("Open File"), "./img");  
+	this->ui.pTrainFaceImgPathText->setText(fileName);
+}
+
+void Main::on_pTrainNotfaceChoiceFileBtn_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_pTrainNotfaceChoiceFileBtn_clicked"<<endl;
+#endif
+	QString fileName = QFileDialog::getExistingDirectory(this, tr("Open File"), "./img");  
+	this->ui.pTrainNotfaceImgPathText->setText(fileName);
+}
+
+void Main::on_yStartBtn_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_yStartBtn_clicked"<<endl;
+#endif//DEBUG_UI
+	Mat img;
+	if(this->fd == NULL)
+		this->fd = new YCbCr(img);
+	this->fd->setUseMorphOpen(false);
+	if(this->ui.yRealtimeRtb->isChecked())
+	{
+#ifdef DEBUG_UI
+		cout<<"yRealtimeRtb is checked"<<endl;
+#endif//DEBUG_UI
+		VideoCapture cap(0);
+		if(!cap.isOpened())
+		{
+			QMessageBox::information(this, tr("Error"), tr("VideoCapture is closed !"));  
+			return;
+		}
+		while(char(waitKey(10)) != 'q' && this->ui.yRealtimeRtb->isChecked())
+		{
+#ifdef DEBUG_UI
+			cout<<"yRealtimeRtb is checked : "<<this->ui.yRealtimeRtb->isChecked()<<endl;
+#endif//DEBUG_UI
+			cap>>img;
+			this->dealYCbCrPro(img);
+		}
+		cap.release();
+	}
+	else
+	{
+		QString qImgPath = this->ui.yImgPathText->text();
+		string imgPath = qImgPath.toStdString();
+#ifdef DEBUG_UI
+		cout<<"\tfileRtb is checked"<<endl;
+		cout<<"ImgPath = "<<imgPath<<endl;
+#endif
+		if(imgPath.empty())
+		{
+			QMessageBox::information(this, tr("Error"), tr("Please input image path !"));  
+			return;
+		}
+		img = imread(imgPath.c_str());
+		this->dealYCbCrPro(img);
+	}
+}
+
+void Main::on_yRealtimeRtb_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_yRealtimeRtb_clicked"<<endl;
+#endif//DEBUG_UI
+	this->ui.yImgPathText->setEnabled(false);
+	this->ui.yChoiceFileBtn->setEnabled(false);
+}
+
+void Main::on_yFileRtb_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_yFileRtb_clicked"<<endl;
+#endif//DEBUG_UI
+	this->ui.yImgPathText->setEnabled(true);
+	this->ui.yChoiceFileBtn->setEnabled(true);
+}
+
+void Main::on_yChoiceFileBtn_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_yChoiceFileBtn_clicked"<<endl;
+#endif//DEBUG_UI
+	QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"), "./img",  tr("Images (*.png *.xpm *.jpg)"));  
+	this->ui.yImgPathText->setText(fileName);
+	Mat img = imread(fileName.toStdString().c_str());
+	if(img.empty())
+	{
+		QMessageBox::information(this, tr("Error"), tr("The image you have choiced is in a wrong format !"));
+		return;
+	}
+	else
+	{
+		this->mat2Label(img,this->ui.ySrcImgLabel);
+	}
+}
+
+void Main::mat2Label(Mat image,QLabel* label)
+{
+	if(image.channels() == 3 || image.channels() == 4)
+	{
+		cvtColor(image,image,CV_BGR2RGB);
+	}
+	else
+	{
+		cvtColor(image,image,CV_GRAY2RGB);
+	}
+    QImage img = QImage((const unsigned char*)(image.data),image.cols,image.rows, image.cols*image.channels(),  QImage::Format_RGB888);  
+	label->clear();
+	label->setPixmap(QPixmap::fromImage(img));
+}
+
+void Main::dealYCbCrPro(const Mat& img)
+{
+	this->fd->setImg(img);
+	this->mat2Label(img,this->ui.ySrcImgLabel);
+	this->fd->init();
+	this->fd->initOrdinarySkin();
+	this->mat2Label(this->fd->getCacheImg(),this->ui.ySkinImgLabel);
+	this->fd->morph();
+	this->mat2Label(this->fd->getCacheImg(),this->ui.yMorphImgLabel);
+	this->fd->splitArea();
+	this->mat2Label(this->fd->getDrawnImg(),this->ui.ySplitAreaImgLabel);
+	this->fd->selectLegal();
+	this->mat2Label(this->fd->getDrawnImg(),this->ui.yDstImgLabel);
+}
+
+void Main::on_cFaceChoiceFileBtn_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_cFaceChoiceFileBtn_clicked"<<endl;
+#endif//DEBUG_UI
+	QString fileName = QFileDialog::getExistingDirectory(this, tr("Open File"), "./img");
+	this->ui.cFaceImgPathText->setText(fileName);
+}
+
+void Main::on_cNotfaceChoiceFileBtn_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_cNotfaceChoiceFileBtn_clicked"<<endl;
+#endif//DEBUG_UI
+	QString fileName = QFileDialog::getExistingDirectory(this, tr("Open File"), "./img");
+	this->ui.cNotfaceImgPathText->setText(fileName);
+}
+
+void Main::on_cStartBtn_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_cStartBtn_clicked"<<endl;
+#endif//DEBUG_UI
+	String faceDir = this->ui.cFaceImgPathText->text().toStdString();
+	String notfaceDir = this->ui.cNotfaceImgPathText->text().toStdString();
+	int faceBegin = this->ui.cFaceBeginBox->value();
+	int faceEnd = this->ui.cFaceEndBox->value();
+	int notfaceBegin = this->ui.cNotfaceBeginBox->value();
+	int notfaceEnd = this->ui.pTrainNotfaceEndBox_2->value();
+	if(faceDir.length() == 0)
+	{
+		QMessageBox::information(this, tr("Error"), tr("Please choice face directory !")); 
+		return;
+	}
+	if(notfaceDir.length() == 0)
+	{
+		QMessageBox::information(this, tr("Error"), tr("Please choice notface directory !")); 
+		return ;
+	}
+	if(faceDir.find_last_of("/") != faceDir.length() - 1)
+	{
+		faceDir += "/";
+	}
+	if(notfaceDir.find_last_of("/") != notfaceDir.length() - 1)
+	{
+		notfaceDir += "/";
+	}
+#ifdef DEBUG_UI
+	cout<<"faceDir = "<<faceDir<<";from "<<faceBegin<<" to "<<faceEnd<<endl;
+	cout<<"notfaceDir = "<<notfaceDir<<";from "<<notfaceBegin<<" to "<<notfaceEnd<<endl;
+#endif
+	int faceNum = faceEnd - faceBegin + 1;
+	int notfaceNum = notfaceEnd - notfaceBegin + 1;
+	stringstream sStream;
+	string str;
+	sStream<<faceNum;
+	sStream>>str;
+	this->ui.cFaceNumText->setText(QString::fromStdString(str));
+	sStream.clear();
+	sStream<<notfaceNum;
+	sStream>>str;
+	this->ui.cNotfaceNum->setText(QString::fromStdString(str));
+	int64 timerBegin = getTickCount();//timer
+	if(this->ui.cAdaBoostRtb->isChecked())
+	{
+#ifdef DEBUG_UI
+		cout<<"AdaBoost is choiced !"<<endl;
+#endif
+		this->compareDetect(faceDir,faceBegin,faceEnd,notfaceDir,notfaceBegin,notfaceEnd,&Main::compareAdaBoost);
+	}else if(this->ui.cPCASVMRtb->isChecked())
+	{
+#ifdef DEBUG_UI
+		cout<<"PCASVM is choiced !"<<endl;
+#endif
+		if(this->ps == NULL)
+		{
+			QMessageBox::information(this, tr("Error"), tr("Please train before test !")); 
+			return;
+		}
+		this->compareDetect(faceDir,faceBegin,faceEnd,notfaceDir,notfaceBegin,notfaceEnd,&Main::comparePCASVM);
+	}else
+	{
+#ifdef DEBUG_UI
+		cout<<"YCrCb is choiced !"<<endl;
+#endif
+		if(this->fd == NULL)
+		{
+			this->fd = new YCbCr(Mat());
+			this->fd->setUseMorphOpen(false);
+		}
+		this->compareDetect(faceDir,faceBegin,faceEnd,notfaceDir,notfaceBegin,notfaceEnd,&Main::compareYCrCb);
+	}
+	int64 timerEnd = getTickCount();
+	char timerStr[256];
+	sprintf(timerStr,"%s\n\t%.2f ms","Total Time:",1000 * (timerEnd - timerBegin) / getTickFrequency());
+	QMessageBox::information(this, tr("Finish"), tr(timerStr)); 
+}
+
+void Main::on_cAdaBoostRtb_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_cAdaBoostRtb_clicked"<<endl;
+#endif//DEBUG_UI
+	this->ui.cAlgorithm->setText(tr("AdaBoost"));
+}
+
+void Main::on_cPCASVMRtb_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_cPCASVMRtb_clicked"<<endl;
+#endif//DEBUG_UI
+	this->ui.cAlgorithm->setText(tr("PCASVM"));
+}
+
+void Main::on_cYCrCbRtb_clicked()
+{
+#ifdef DEBUG_UI
+	cout<<"on_cYCrCbRtb_clicked"<<endl;
+#endif//DEBUG_UI
+	this->ui.cAlgorithm->setText(tr("YCrCb"));
+}
+
+void Main::compareDetect(const string& faceDir,const int& faceBegin,const int& faceEnd,const string& notfaceDir,const int& notfaceBegin,const int& notfaceEnd,void (Main::*detectPro)(Mat& src,int& cnt))
+{
+	int truePos = 0;
+	int falseNeg = 0;
+	char path[256];
+	Mat img;
+	for(int i = faceBegin;i <= faceEnd; i++)
+	{
+		sprintf(path, "%s%d.png",faceDir.c_str(),i);
+		img = imread(path);
+		if(img.empty())
+		{
+			sprintf(path, "%s%d.jpg",faceDir.c_str(),i);
+			img = imread(path);
+		}
+		if(img.empty())
+		{
+			QMessageBox::information(this, tr("Error"), tr(path)); 
+			return;
+		}
+#ifdef DEBUG_UI
+		cout<<path;
+#endif//DEBUG_UI
+		(this->*detectPro)(img,truePos);
+	}
+	for(int  i = notfaceBegin;i <= notfaceEnd; i++)
+	{
+		sprintf(path,"%s%d.png",notfaceDir.c_str(),i);
+		img = imread(path);
+		if(img.empty())
+		{
+			sprintf(path,"%s%d.jpg",notfaceDir.c_str(),i);
+			img = imread(path);
+		}
+		if(img.empty())
+		{
+			QMessageBox::information(this, tr("Error"), tr(path)); 
+			return;
+		}
+#ifdef DEBUG_UI
+		cout<<path;
+#endif//DEBUG_UI
+		(this->*detectPro)(img,falseNeg);
+	}
+	int faceNum = faceEnd - faceBegin + 1;
+	int notfaceNum = notfaceEnd - notfaceBegin + 1;
+	string str;
+	stringstream sStream;
+	sStream<<faceNum + notfaceNum;
+	sStream>>str;
+	this->ui.cResultTable->item(0,0)->setText(QString::fromStdString(str));
+	sStream.clear();
+	sStream<<truePos;
+	sStream>>str;
+	this->ui.cResultTable->item(0,1)->setText(QString::fromStdString(str));
+	sStream.clear();
+	sStream<<falseNeg;
+	sStream>>str;
+	this->ui.cResultTable->item(0,2)->setText(QString::fromStdString(str));
+	char preStr[32];
+	sprintf(preStr,"%.2f%%",truePos * 100.0 / faceNum);
+	this->ui.cResultTable->item(0,3)->setText(QString::fromStdString(preStr));
+	sprintf(preStr,"%.2f%%",(notfaceNum - falseNeg) * 100.0 / notfaceNum);
+	this->ui.cResultTable->item(0,4)->setText(QString::fromStdString(preStr));
+	sprintf(preStr,"%.2f%%",(faceNum - truePos) * 100.0 / faceNum);
+	this->ui.cResultTable->item(0,5)->setText(QString::fromStdString(preStr));
+	sprintf(preStr,"%.2f%%",falseNeg * 100.0 / notfaceNum);
+	this->ui.cResultTable->item(0,6)->setText(QString::fromStdString(preStr));
+}
+
+void Main::compareAdaBoost(Mat& src,int& cnt)
+{
+		waitKey(10);
+		this->ada.setImage(src);
+		this->ada.detect();
+		this->mat2Label(src,this->ui.cSrcImgLabel);
+		this->mat2Label(this->ada.getDrawnImg(),this->ui.cDstImgLabel);
+		if(this->ada.hasFace())
+		{
+			cnt++;
+		}
+#ifdef DEBUG_UI
+			string debug_str = this->ada.hasFace()?" is face !":" isn't face !";
+			cout<<debug_str<<endl;
+#endif//DEBUG_UI
+}
+
+void Main::comparePCASVM(Mat& src,int& cnt)
+{
+	waitKey(10);
+	this->mat2Label(src,this->ui.cSrcImgLabel);
+	if(src.channels() != 1)
+	{
+#ifdef DEBUG_UI
+		cout<<" translate to gray image ";
+#endif//DEBUG_UI
+		cvtColor(src,src,CV_BGR2GRAY);
+	}
+	this->mat2Label(src,this->ui.cDstImgLabel);
+	if(this->ps->isFace(src))
+	{
+		cnt++;
+	}
+#ifdef DEBUG_UI
+			string debug_str = this->ps->isFace(src)?" is face !":" isn't face !";
+			cout<<debug_str<<endl;
+#endif//DEBUG_UI
+}
+void Main::compareYCrCb(Mat& src,int& cnt)
+{
+	waitKey(10);
+	this->fd->setImg(src);
+	this->mat2Label(src,this->ui.cSrcImgLabel);
+	this->fd->init();
+	this->fd->detect();
+	this->mat2Label(this->fd->getDrawnImg(),this->ui.cDstImgLabel);
+	if(this->fd->isFace())
+	{
+		cnt++;
+	}
+#ifdef DEBUG_UI
+			string debug_str = this->fd->isFace()?" is face !":" isn't face !";
+			cout<<debug_str<<endl;
+#endif//DEBUG_UI
+}
+
+Main::~Main()
+{
+	if(this->ps != NULL)
+	{
+		delete this->ps;
+		this->ps = NULL;
+	}
+	if(this->fd != NULL)
+	{
+		delete this->fd;
+		this->fd = NULL;
+	}
+}
