@@ -4,7 +4,7 @@
   要求已经安装opencv和Qt,该工程原始的开发环境为Linux，并且保证g++,make等基本的c/c++环境及命令可用
 ## 运行
   1. 首先执行qmake -project命令，生成.pro文件；
-  2. 然后执行aqmake命令，生成Makefile文件；
+  2. 然后执行qmake命令，生成Makefile文件；
   3. 在我的电脑上可以直接通过pkg-config opencv --libs命令直接获取到opencv的头文件路径和编译所需要的库文件，将这些东西追加到Makefile文件中的Libs变量后，保证在Qt工程中可以正确调用到opencv；
   4. 执行make命令，会生成可执行文件Facedetect；
   5. 使用./Facedetect执行程序；
